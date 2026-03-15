@@ -2019,7 +2019,7 @@ function refreshMapMarkers(){
   const filtered=devices.filter(d=>{
     if(!d.lat||!d.lng)return false;
     const s=getStatus(d);
-    if(mapFilter==='all') return s!=='complete'; // all incomplete + failed
+    if(mapFilter==='all') return true; // show everything including complete
     if(mapFilter==='complete') return s==='complete';
     if(mapFilter==='failed') return s==='failed';
     return s===mapFilter;
