@@ -69,6 +69,7 @@ td{padding:11px 14px;font-size:13px;vertical-align:middle}
 .b-overdue{background:var(--red-bg);color:var(--red)}
 .b-due{background:var(--amber-bg);color:var(--amber)}
 .b-upcoming{background:#eef3fb;color:#2563a8}
+.b-due-next{background:#eaf4ee;color:#1a6636}
 .b-complete{background:var(--green-bg);color:var(--green)}
 .alert-info{background:#eef3fb;color:#2563a8;border-color:rgba(37,99,168,.15)}
 .row-acts{display:flex;gap:4px;opacity:0;transition:opacity .15s}
@@ -331,6 +332,7 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
       <option value="">All statuses</option>
       <option value="overdue">Overdue</option>
       <option value="due">Due this month</option>
+      <option value="due_next">Due next month</option>
       <option value="upcoming">Upcoming</option>
       <option value="complete">Complete</option>
     </select>
@@ -817,7 +819,6 @@ function mapsUrl(d){
 const MONTH_NAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 function getStatus(d){
-  // If already tested this year with a pass/fail result -> Complete
   const now=new Date();
   const currentYear=now.getFullYear();
   const currentMonth=now.getMonth(); // 0-indexed
@@ -828,11 +829,10 @@ function getStatus(d){
   if(!d.scheduledMonth) return'pending';
   const schedIdx=MONTH_NAMES.findIndex(m=>m===d.scheduledMonth);
   if(schedIdx===-1) return'pending';
-  // Past the end of scheduled month and not tested this year = overdue
   if(currentMonth>schedIdx) return'overdue';
-  // In the scheduled month right now = due
   if(currentMonth===schedIdx) return'due';
-  // Upcoming
+  // Due next month
+  if(schedIdx===currentMonth+1||(currentMonth===11&&schedIdx===0)) return'due_next';
   return'upcoming';
 }
 
@@ -841,6 +841,7 @@ function statusBadge(d){
   const map={
     overdue:'<span class="badge b-overdue"><span class="bdot"></span>Overdue</span>',
     due:'<span class="badge b-due"><span class="bdot"></span>Due this month</span>',
+    due_next:'<span class="badge b-due-next"><span class="bdot"></span>Due next month</span>',
     upcoming:'<span class="badge b-upcoming"><span class="bdot"></span>Upcoming</span>',
     complete:'<span class="badge b-complete"><span class="bdot"></span>Complete</span>',
     pending:'<span class="badge b-pend"><span class="bdot"></span>Pending</span>'
@@ -1946,6 +1947,7 @@ let userLocationMarker=null;
 const MAP_COLOURS={
   overdue:'#c0392b',
   due:'#e67e22',
+  due_next:'#27ae60',
   upcoming:'#2980b9',
   pending:'#888888',
   complete:'#27ae60'
@@ -2026,7 +2028,7 @@ function refreshMapMarkers(){
     const marker=L.marker([d.lat,d.lng],{icon}).addTo(leafletMap);
 
     // Build popup
-    const statusLabel={overdue:'⚠ Overdue',due:'📅 Due this month',upcoming:'🔜 Upcoming',pending:'⏳ Pending'}[s]||s;
+    const statusLabel={overdue:'⚠ Overdue',due:'📅 Due this month',due_next:'🟢 Due next month',upcoming:'🔜 Upcoming',pending:'⏳ Pending'}[s]||s;
     const popup=L.popup({maxWidth:260,className:'bf-popup'}).setContent(`
       <div style="font-family:-apple-system,sans-serif;min-width:200px">
         <div style="font-weight:700;font-size:13px;margin-bottom:2px">${d.suburb}</div>
@@ -2207,10 +2209,11 @@ function generateQR(url, deviceName){
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="2.5" stroke="white" stroke-width="1.2"/><path d="M6 1v1.5M6 9.5V11M1 6h1.5M9.5 6H11" stroke="white" stroke-width="1.2" stroke-linecap="round"/></svg>
         My location
       </button>
-      <div id="map-filter-btns" style="display:flex;gap:4px">
+      <div id="map-filter-btns" style="display:flex;gap:4px;flex-wrap:wrap">
         <button class="mfbtn active" data-status="all" onclick="setMapFilter('all',this)">All</button>
         <button class="mfbtn" data-status="overdue" onclick="setMapFilter('overdue',this)">Overdue</button>
         <button class="mfbtn" data-status="due" onclick="setMapFilter('due',this)">Due</button>
+        <button class="mfbtn" data-status="due_next" onclick="setMapFilter('due_next',this)">Next month</button>
         <button class="mfbtn" data-status="upcoming" onclick="setMapFilter('upcoming',this)">Upcoming</button>
       </div>
       <button onclick="closeMapView()" style="width:30px;height:30px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);cursor:pointer;color:#fff;font-size:16px;display:flex;align-items:center;justify-content:center">&#x2715;</button>
@@ -2221,6 +2224,7 @@ function generateQR(url, deviceName){
     <span style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Legend:</span>
     <span style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="width:12px;height:12px;border-radius:50%;background:#c0392b;display:inline-block"></span>Overdue</span>
     <span style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="width:12px;height:12px;border-radius:50%;background:#e67e22;display:inline-block"></span>Due this month</span>
+    <span style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="width:12px;height:12px;border-radius:50%;background:#27ae60;display:inline-block"></span>Due next month</span>
     <span style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="width:12px;height:12px;border-radius:50%;background:#2980b9;display:inline-block"></span>Upcoming</span>
     <span style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="width:12px;height:12px;border-radius:50%;background:#888;display:inline-block"></span>No date set</span>
     <span id="map-count" style="margin-left:auto;font-size:12px;color:var(--text3)"></span>
