@@ -281,7 +281,7 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
   </div>
   <div class="nav-right">
     <span id="nav-user-info" style="font-size:12px;opacity:.8;white-space:nowrap"></span>
-    <button class="nbtn" id="nav-users-btn" onclick="openUserMgmt()" style="display:none">&#9881; Users</button>
+    <button class="nbtn" id="nav-users-btn" onclick="openSettings('users')" style="display:none">&#9881; Settings</button>
     <button class="nbtn" id="nav-reset-btn" onclick="resetToSeedData()" style="display:none;background:rgba(184,50,50,.25);border-color:rgba(255,255,255,.3)" title="Reset all device data to defaults">&#8635; Reset data</button>
     <button class="nbtn" id="nav-export-btn" onclick="exportCSV()">&#8595; Export CSV</button>
     <button class="nbtn nbtn-p" id="nav-add-btn" onclick="openAdd()">+ Add device</button>
@@ -535,42 +535,99 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
 
 <!-- User Management Modal (admin only) -->
 <div class="mbg" id="user-modal" style="display:none" onclick="bgUserClose(event)">
-  <div class="modal" style="width:700px;max-width:98vw">
-    <div class="mhdr">
-      <div class="mtitle">User management</div>
-      <button class="mclose" onclick="closeUserMgmt()">&#x2715;</button>
+  <div class="modal" style="width:700px;max-width:98vw;padding:0;overflow:hidden">
+
+    <!-- Settings header -->
+    <div style="padding:1.25rem 1.5rem 0;border-bottom:1px solid var(--border2)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+        <div class="mtitle">Settings</div>
+        <button class="mclose" onclick="closeUserMgmt()">&#x2715;</button>
+      </div>
+      <!-- Tabs -->
+      <div style="display:flex;gap:0" id="settings-tabs">
+        <button class="stab" id="stab-users" onclick="switchSettingsTab('users')" style="font-family:var(--sans);font-size:13px;font-weight:600;padding:8px 18px;border:none;background:none;cursor:pointer;border-bottom:2px solid var(--accent);color:var(--accent)">
+          👥 Users
+        </button>
+        <button class="stab" id="stab-client" onclick="switchSettingsTab('client')" style="font-family:var(--sans);font-size:13px;font-weight:500;padding:8px 18px;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--text2)">
+          🏢 Client Info
+        </button>
+      </div>
     </div>
-    <table class="utbl" id="user-table"></table>
-    <div style="border-top:1px solid var(--border2);margin-top:1.25rem;padding-top:1.25rem">
-      <div style="font-size:13px;font-weight:600;margin-bottom:12px">Add new user</div>
-      <div class="frow">
-        <div class="field"><label>Username</label><input type="text" id="nu-user" placeholder="username"></div>
-        <div class="field"><label>Password</label><input type="password" id="nu-pass" placeholder="password"></div>
-      </div>
-      <div class="frow">
-        <div class="field"><label>Full name</label><input type="text" id="nu-name" placeholder="e.g. Neil Smith"></div>
-        <div class="field"><label>Preset</label>
-          <select id="nu-preset" onchange="applyPreset()">
-            <option value="tester">Tester</option>
-            <option value="supervisor">Supervisor</option>
-            <option value="admin">Admin</option>
-            <option value="custom">Custom</option>
-          </select>
+
+    <!-- Users tab -->
+    <div id="settings-pane-users" style="padding:1.25rem 1.5rem 1.5rem;max-height:75vh;overflow-y:auto">
+      <table class="utbl" id="user-table"></table>
+      <div style="border-top:1px solid var(--border2);margin-top:1.25rem;padding-top:1.25rem">
+        <div style="font-size:13px;font-weight:600;margin-bottom:12px">Add new user</div>
+        <div class="frow">
+          <div class="field"><label>Username</label><input type="text" id="nu-user" placeholder="username"></div>
+          <div class="field"><label>Password</label><input type="password" id="nu-pass" placeholder="password"></div>
         </div>
-      </div>
-      <div style="background:var(--surface2);border-radius:var(--r);border:1px solid var(--border2);padding:12px;margin-bottom:12px">
-        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:10px">Permissions</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" id="nu-perms">
-          <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer"><input type="checkbox" id="p-recordTests" style="accent-color:var(--accent)"> Record test results</label>
-          <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer"><input type="checkbox" id="p-editDevices" style="accent-color:var(--accent)"> Edit device details</label>
-          <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer"><input type="checkbox" id="p-addDevices" style="accent-color:var(--accent)"> Add / delete devices</label>
-          <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer"><input type="checkbox" id="p-viewHistory" style="accent-color:var(--accent)"> View test history</label>
-          <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer"><input type="checkbox" id="p-exportCSV" style="accent-color:var(--accent)"> Export CSV</label>
-          <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer"><input type="checkbox" id="p-manageUsers" style="accent-color:var(--accent)"> Manage users</label>
+        <div class="frow">
+          <div class="field"><label>Full name</label><input type="text" id="nu-name" placeholder="e.g. Neil Smith"></div>
+          <div class="field"><label>Preset</label>
+            <select id="nu-preset" onchange="applyPreset()">
+              <option value="tester">Tester</option>
+              <option value="supervisor">Supervisor</option>
+              <option value="admin">Admin</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
         </div>
+        <div style="background:var(--surface2);border-radius:var(--r);border:1px solid var(--border2);padding:12px;margin-bottom:12px">
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:10px">Permissions</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" id="nu-perms">
+            <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer"><input type="checkbox" id="p-recordTests" style="accent-color:var(--accent)"> Record test results</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer"><input type="checkbox" id="p-editDevices" style="accent-color:var(--accent)"> Edit device details</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer"><input type="checkbox" id="p-addDevices" style="accent-color:var(--accent)"> Add / delete devices</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer"><input type="checkbox" id="p-viewHistory" style="accent-color:var(--accent)"> View test history</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer"><input type="checkbox" id="p-exportCSV" style="accent-color:var(--accent)"> Export CSV</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer"><input type="checkbox" id="p-manageUsers" style="accent-color:var(--accent)"> Manage users</label>
+          </div>
+        </div>
+        <button class="btn btn-p" onclick="addUser()" style="margin-top:4px">Add user</button>
       </div>
-      <button class="btn btn-p" onclick="addUser()" style="margin-top:4px">Add user</button>
     </div>
+
+    <!-- Client Info tab -->
+    <div id="settings-pane-client" style="display:none;padding:1.25rem 1.5rem 1.5rem;max-height:75vh;overflow-y:auto">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:1.25rem">This information appears in email reports and on the dashboard. Fields are optional.</p>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem">
+        <div class="field" style="margin:0"><label>Organisation name</label><input type="text" id="ci-org" placeholder="e.g. Shoalhaven City Council"></div>
+        <div class="field" style="margin:0"><label>Department / team</label><input type="text" id="ci-dept" placeholder="e.g. Water Operations"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem">
+        <div class="field" style="margin:0"><label>Contact name</label><input type="text" id="ci-contact" placeholder="e.g. Neil Smith"></div>
+        <div class="field" style="margin:0"><label>Job title</label><input type="text" id="ci-title" placeholder="e.g. Water Services Officer"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem">
+        <div class="field" style="margin:0"><label>Phone</label><input type="text" id="ci-phone" placeholder="e.g. (02) 4429 3111"></div>
+        <div class="field" style="margin:0"><label>Mobile</label><input type="text" id="ci-mobile" placeholder="e.g. 0400 000 000"></div>
+      </div>
+      <div class="field"><label>Email address</label><input type="email" id="ci-email" placeholder="e.g. water@shoalhaven.nsw.gov.au"></div>
+      <div class="field"><label>CC email address <span style="font-weight:400;color:var(--text3)">(optional — copied on all reports)</span></label><input type="email" id="ci-cc" placeholder="e.g. compliance@shoalhaven.nsw.gov.au"></div>
+      <div class="field"><label>Report recipient email <span style="font-weight:400;color:var(--text3)">(who to send completion reports to)</span></label><input type="email" id="ci-recipient" placeholder="e.g. manager@shoalhaven.nsw.gov.au"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem">
+        <div class="field" style="margin:0"><label>Address</label><input type="text" id="ci-addr" placeholder="e.g. Bridge Rd, Nowra NSW 2541"></div>
+        <div class="field" style="margin:0"><label>Website</label><input type="text" id="ci-web" placeholder="e.g. shoalhaven.nsw.gov.au"></div>
+      </div>
+      <div class="field"><label>Email sign-off / footer note <span style="font-weight:400;color:var(--text3)">(appears at bottom of reports)</span></label>
+        <textarea id="ci-footer" placeholder="e.g. This report is generated from the SCC Backflow Prevention Device Register. Please retain for compliance purposes." style="height:70px;resize:vertical;font-family:var(--sans);width:100%;padding:8px 11px;font-size:13px;border:1px solid var(--border);border-radius:var(--r);background:var(--surface);color:var(--text)"></textarea>
+      </div>
+
+      <!-- Preview card -->
+      <div style="background:var(--accent-light);border:1px solid rgba(26,77,110,.15);border-radius:var(--r);padding:14px;margin-bottom:1.25rem" id="ci-preview-box">
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);margin-bottom:10px">Preview</div>
+        <div id="ci-preview" style="font-size:13px;color:var(--accent);line-height:1.7"></div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button class="btn" onclick="closeUserMgmt()">Cancel</button>
+        <button class="btn btn-p" onclick="saveClientInfo()">Save client info</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -710,7 +767,23 @@ function render(){
     const groups={};
     filtered.forEach(d=>{if(!groups[d.complex])groups[d.complex]=[];groups[d.complex].push(d);});
     Object.keys(groups).sort().forEach(cx=>{
-      html+=`<tr class="grp-hdr"><td colspan="10">${cx} <span style="font-weight:400;opacity:.6">(${groups[cx].length})</span></td></tr>`;
+      const cxDevices=groups[cx];
+      const cxComplete=cxDevices.filter(d=>getStatus(d)==='complete').length;
+      const cxTotal=cxDevices.length;
+      const allDone=cxComplete===cxTotal;
+      const pct=Math.round((cxComplete/cxTotal)*100);
+      const progColour=allDone?'var(--green)':cxComplete>0?'var(--amber)':'var(--text3)';
+      const emailBtn=allDone?`<button onclick="emailComplexReport('${cx.replace(/'/g,"\\'")}',event)" style="font-family:var(--sans);font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;border:1px solid rgba(26,102,54,.3);background:var(--green-bg);color:var(--green);cursor:pointer;display:inline-flex;align-items:center;gap:4px;white-space:nowrap">
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><rect x=".5" y="1.5" width="10" height="8" rx="1.5" stroke="currentColor" stroke-width="1.1"/><path d="M.5 3.5l5 3 5-3" stroke="currentColor" stroke-width="1.1"/></svg>
+        Email report
+      </button>`:'';
+      const statusSpan=allDone
+        ?`<span style="font-size:11px;font-weight:600;color:var(--green);background:var(--green-bg);padding:2px 8px;border-radius:20px;border:1px solid rgba(26,102,54,.2)">✓ Complete</span>`
+        :`<span style="font-size:11px;color:${progColour};font-weight:500">${cxComplete}/${cxTotal}</span>`;
+      html+=`<tr class="grp-hdr"><td colspan="10" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+        <span>${cx} <span style="font-weight:400;opacity:.6">(${cxTotal})</span></span>
+        <span style="display:flex;align-items:center;gap:8px">${statusSpan}${emailBtn}</span>
+      </td></tr>`;
       groups[cx].forEach(d=>html+=deviceRow(d,true));
     });
   }else{
@@ -1111,6 +1184,124 @@ function saveAdd(){
   document.getElementById('a-sched').value='';
 }
 
+function emailComplexReport(complex, evt){
+  if(evt){evt.stopPropagation();}
+  const ci=getClientInfo();
+  const year=new Date().getFullYear();
+  const cxDevices=devices.filter(d=>d.complex===complex);
+  const tested=cxDevices.filter(d=>getStatus(d)==='complete');
+  const failed=tested.filter(d=>d.testResult==='Fail');
+  const passed=tested.filter(d=>d.testResult==='Pass');
+
+  const fmtDate=s=>{if(!s)return'—';const[y,m,d]=s.split('-');return`${d}/${m}/${y}`;};
+
+  const lines=tested.map(d=>{
+    const lastLog=d.testLog&&d.testLog.length?d.testLog[d.testLog.length-1]:null;
+    const tester=lastLog?lastLog.tester:'—';
+    const result=d.testResult==='Pass'?'PASS':'FAIL';
+    const bfId=d.backflowId?` [${d.backflowId}]`:'';
+    return `  • Serial: ${d.serial}${bfId} | ${d.make} ${d.model} ${d.size}mm\n    Location: ${d.location.slice(0,80)}\n    Tested: ${fmtDate(d.testDate)} | Result: ${result} | By: ${tester}`;
+  }).join('\n\n');
+
+  const failSection=failed.length?`\nDEVICES REQUIRING ATTENTION (${failed.length}):\n`+failed.map(d=>`  ⚠ Serial: ${d.serial} — ${d.make} ${d.model} — ${d.location.slice(0,60)}`).join('\n')+'\n':'';
+
+  // Sender / org info from client settings
+  const orgLine=ci.org?(ci.dept?ci.org+' — '+ci.dept:ci.org):'Shoalhaven City Council';
+  const senderName=ci.contact||currentUser.name;
+  const senderTitle=ci.title?'\n'+ci.title:'';
+  const phoneLines=[ci.phone?'Phone: '+ci.phone:'',ci.mobile?'Mobile: '+ci.mobile:''].filter(Boolean).join(' | ');
+  const emailLine=ci.email?'Email: '+ci.email:'';
+  const footerNote=ci.footer||'This report was generated from the SCC Backflow Prevention Device Register.\nPlease retain this record for compliance purposes.';
+
+  const subject=`Backflow Testing Complete — ${complex} — ${year}`;
+  const body=`Hi,
+
+This email confirms that annual backflow prevention device testing has been completed for:
+
+COMPLEX:          ${complex}
+YEAR:             ${year}
+DATE COMPLETED:   ${fmtDate(tested.map(d=>d.testDate).sort().pop())}
+ORGANISATION:     ${orgLine}
+
+SUMMARY:
+  Total devices:  ${cxDevices.length}
+  Tested:         ${tested.length}
+  Passed:         ${passed.length}
+  Failed:         ${failed.length}
+${failSection}
+DEVICE TEST DETAILS:
+${lines}
+
+---
+${footerNote}
+
+Regards,
+${senderName}${senderTitle}
+${orgLine}
+${[phoneLines,emailLine,ci.addr||''].filter(Boolean).join('\n')}`;
+
+  // Build mailto with To/CC from client info
+  const to=ci.recipient||'';
+  const cc=ci.cc||'';
+  let mailto=`mailto:${to}?`;
+  if(cc) mailto+=`cc=${encodeURIComponent(cc)}&`;
+  mailto+=`subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+  if(mailto.length>1800){
+    showEmailModal(subject, body, to, cc);
+  } else {
+    window.location.href=mailto;
+  }
+}
+
+function showEmailModal(subject, body, to='', cc=''){
+  let modal=document.getElementById('email-report-modal');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='email-report-modal';
+    modal.className='mbg';
+    modal.onclick=e=>{if(e.target===modal)modal.style.display='none';};
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML=`
+    <div class="modal" style="max-width:580px">
+      <div class="mhdr">
+        <div>
+          <div class="mtitle">Email Report Ready</div>
+          <div class="msub-info">Review and send — or copy to paste into your email client</div>
+        </div>
+        <button class="mclose" onclick="document.getElementById('email-report-modal').style.display='none'">&#x2715;</button>
+      </div>
+      <div class="frow" style="margin-bottom:0">
+        <div class="field"><label>To</label><input type="email" id="em-to" value="${to}" placeholder="recipient@example.com"></div>
+        <div class="field"><label>CC <span style="font-weight:400;color:var(--text3)">(optional)</span></label><input type="email" id="em-cc" value="${cc}" placeholder="cc@example.com"></div>
+      </div>
+      <div class="field">
+        <label>Subject</label>
+        <input type="text" id="email-subject" value="${subject.replace(/"/g,'&quot;')}">
+      </div>
+      <div class="field">
+        <label>Email body</label>
+        <textarea id="email-body" style="height:240px;font-family:var(--mono);font-size:12px;line-height:1.6">${body.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+      </div>
+      <div class="mfooter" style="gap:8px">
+        <button class="btn" onclick="document.getElementById('email-report-modal').style.display='none'">Cancel</button>
+        <button class="btn" onclick="navigator.clipboard.writeText(document.getElementById('email-body').value);showToast('Copied!')">Copy body</button>
+        <button class="btn btn-p" onclick="
+          const to=document.getElementById('em-to').value;
+          const cc=document.getElementById('em-cc').value;
+          const s=document.getElementById('email-subject').value;
+          const b=document.getElementById('email-body').value;
+          let m='mailto:'+encodeURIComponent(to)+'?';
+          if(cc)m+='cc='+encodeURIComponent(cc)+'&';
+          m+='subject='+encodeURIComponent(s)+'&body='+encodeURIComponent(b);
+          window.open(m);
+        ">&#9993; Open in mail app</button>
+      </div>
+    </div>`;
+  modal.style.display='flex';
+}
+
 function exportCSV(){
   const rows=[['Complex','Make','Model','Size (mm)','Serial No.','Backflow ID','Location','Latitude','Longitude','Scheduled Month','Last Tested','Test Result','Tested By','Notes']];
   devices.forEach(d=>{
@@ -1259,15 +1450,99 @@ function showApp(){
   if(expBtn)expBtn.style.display=can('exportCSV')?'':'none';
   const mobAdd=document.getElementById('mob-add-btn');
   if(mobAdd)mobAdd.style.opacity=can('addDevices')?'1':'0.3';
+  updatePageHeader();
   load();
 }
 
-// ── User Management ─────────────────────────────────────
-function openUserMgmt(){
+// ── Settings Modal ───────────────────────────────────────
+const CLIENT_KEY='scc_client_v1';
+
+function getClientInfo(){
+  try{return JSON.parse(localStorage.getItem(CLIENT_KEY))||{};}catch(e){return{};}
+}
+function saveClientInfo(){
+  const ci={
+    org:    document.getElementById('ci-org').value.trim(),
+    dept:   document.getElementById('ci-dept').value.trim(),
+    contact:document.getElementById('ci-contact').value.trim(),
+    title:  document.getElementById('ci-title').value.trim(),
+    phone:  document.getElementById('ci-phone').value.trim(),
+    mobile: document.getElementById('ci-mobile').value.trim(),
+    email:  document.getElementById('ci-email').value.trim(),
+    cc:     document.getElementById('ci-cc').value.trim(),
+    recipient:document.getElementById('ci-recipient').value.trim(),
+    addr:   document.getElementById('ci-addr').value.trim(),
+    web:    document.getElementById('ci-web').value.trim(),
+    footer: document.getElementById('ci-footer').value.trim(),
+  };
+  localStorage.setItem(CLIENT_KEY, JSON.stringify(ci));
+  updatePageHeader();
+  showToast('Client info saved.');
+  renderClientPreview();
+}
+
+function loadClientInfoFields(){
+  const ci=getClientInfo();
+  document.getElementById('ci-org').value=    ci.org||'';
+  document.getElementById('ci-dept').value=   ci.dept||'';
+  document.getElementById('ci-contact').value=ci.contact||'';
+  document.getElementById('ci-title').value=  ci.title||'';
+  document.getElementById('ci-phone').value=  ci.phone||'';
+  document.getElementById('ci-mobile').value= ci.mobile||'';
+  document.getElementById('ci-email').value=  ci.email||'';
+  document.getElementById('ci-cc').value=     ci.cc||'';
+  document.getElementById('ci-recipient').value=ci.recipient||'';
+  document.getElementById('ci-addr').value=   ci.addr||'';
+  document.getElementById('ci-web').value=    ci.web||'';
+  document.getElementById('ci-footer').value= ci.footer||'';
+  renderClientPreview();
+  // Live preview on input
+  ['ci-org','ci-dept','ci-contact','ci-title','ci-phone','ci-mobile','ci-email','ci-cc','ci-recipient','ci-addr','ci-web','ci-footer'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.oninput=renderClientPreview;
+  });
+}
+
+function renderClientPreview(){
+  const f=id=>document.getElementById(id).value.trim();
+  const lines=[];
+  if(f('ci-org'))  lines.push(`<strong>${f('ci-org')}</strong>${f('ci-dept')?' &mdash; '+f('ci-dept'):''}`);
+  if(f('ci-contact')) lines.push(f('ci-contact')+(f('ci-title')?' &mdash; '+f('ci-title'):''));
+  if(f('ci-phone'))   lines.push('📞 '+f('ci-phone')+(f('ci-mobile')?' &nbsp;|&nbsp; 📱 '+f('ci-mobile'):''));
+  if(f('ci-email'))   lines.push('✉️ '+f('ci-email'));
+  if(f('ci-recipient')) lines.push('📤 Reports to: '+f('ci-recipient'));
+  if(f('ci-addr'))    lines.push('📍 '+f('ci-addr'));
+  if(f('ci-web'))     lines.push('🌐 '+f('ci-web'));
+  const preview=document.getElementById('ci-preview');
+  if(preview) preview.innerHTML=lines.length?lines.join('<br>'):'<span style="color:var(--text3);font-style:italic">Fill in fields above to see preview</span>';
+}
+
+function updatePageHeader(){
+  const ci=getClientInfo();
+  const sub=document.querySelector('.page-hdr p');
+  if(sub&&ci.org) sub.textContent=(ci.org)+(ci.dept?' — '+ci.dept:'');
+}
+
+function switchSettingsTab(tab){
+  ['users','client'].forEach(t=>{
+    document.getElementById('settings-pane-'+t).style.display=t===tab?'block':'none';
+    const btn=document.getElementById('stab-'+t);
+    btn.style.borderBottom=t===tab?'2px solid var(--accent)':'2px solid transparent';
+    btn.style.color=t===tab?'var(--accent)':'var(--text2)';
+    btn.style.fontWeight=t===tab?'600':'500';
+  });
+}
+
+function openSettings(tab){
   applyPreset();
   renderUserTable();
+  loadClientInfoFields();
+  switchSettingsTab(tab||'users');
   document.getElementById('user-modal').style.display='flex';
 }
+
+// ── User Management ─────────────────────────────────────
+function openUserMgmt(){openSettings('users');}
 function closeUserMgmt(){document.getElementById('user-modal').style.display='none';}
 function bgUserClose(e){if(e.target===document.getElementById('user-modal'))closeUserMgmt();}
 
