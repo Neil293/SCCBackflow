@@ -18,8 +18,9 @@
 </style>
 <!-- Firebase SDK -->
 <script type="module">
-  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, enableIndexedDbPersistence, writeBatch, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+try {
+  const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+  const { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch, getDocs, enableMultiTabIndexedDbPersistence } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
 
   const firebaseConfig = {
     apiKey: "AIzaSyCeQ2jjSHSaiskMTX86QVr2aG3UC2_QMKY",
@@ -33,13 +34,14 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  // Enable offline persistence
-  enableIndexedDbPersistence(db).catch(err => {
-    if(err.code === 'failed-precondition') console.warn('Offline persistence: multiple tabs open');
-    else if(err.code === 'unimplemented') console.warn('Offline persistence not supported');
-  });
+  // Enable offline persistence (new API)
+  try {
+    await enableMultiTabIndexedDbPersistence(db);
+  } catch(e) {
+    console.warn('Firebase offline persistence:', e.code);
+  }
 
-  // Expose to global scope for use in existing app code
+  // Expose to global scope
   window._db = db;
   window._fbCollection = collection;
   window._fbDoc = doc;
@@ -50,6 +52,11 @@
   window._fbGetDocs = getDocs;
   window._firebaseReady = true;
   window.dispatchEvent(new Event('firebase-ready'));
+  console.log('Firebase ready');
+} catch(err) {
+  console.error('Firebase failed to load:', err);
+  // App still works without Firebase - localStorage is the fallback
+}
 </script>
 <style>
 :root{--bg:#f2f1ed;--surface:#fff;--surface2:#f0efe9;--border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.05);--text:#1c1c1a;--text2:#666660;--text3:#9c9c94;--accent:#1a4d6e;--accent-light:#e6f0f7;--red:#b83232;--red-bg:#fdf0f0;--amber:#a05a00;--amber-bg:#fef6e6;--green:#1a6636;--green-bg:#eaf4ee;--mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;--r:10px;--rl:16px}
