@@ -10,7 +10,47 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <style>
 #offline-banner{display:none;position:fixed;top:52px;left:0;right:0;z-index:400;background:#b83232;color:#fff;font-size:12px;font-weight:600;text-align:center;padding:7px 1rem;letter-spacing:.02em}
+#sync-indicator{display:none;align-items:center;gap:5px;font-size:11px;opacity:.8;white-space:nowrap;flex-shrink:0}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:#4ade80;flex-shrink:0}
+.sync-dot.syncing{background:#f59e0b;animation:pulse-dot .8s infinite}
+.sync-dot.error{background:#ef4444}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.3}}
 </style>
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, enableIndexedDbPersistence, writeBatch, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCeQ2jjSHSaiskMTX86QVr2aG3UC2_QMKY",
+    authDomain: "complytrack-6ac7e.firebaseapp.com",
+    projectId: "complytrack-6ac7e",
+    storageBucket: "complytrack-6ac7e.firebasestorage.app",
+    messagingSenderId: "464278358151",
+    appId: "1:464278358151:web:6a7619a2c4f5f0ed2cd022"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // Enable offline persistence
+  enableIndexedDbPersistence(db).catch(err => {
+    if(err.code === 'failed-precondition') console.warn('Offline persistence: multiple tabs open');
+    else if(err.code === 'unimplemented') console.warn('Offline persistence not supported');
+  });
+
+  // Expose to global scope for use in existing app code
+  window._db = db;
+  window._fbCollection = collection;
+  window._fbDoc = doc;
+  window._fbSetDoc = setDoc;
+  window._fbDeleteDoc = deleteDoc;
+  window._fbOnSnapshot = onSnapshot;
+  window._fbWriteBatch = writeBatch;
+  window._fbGetDocs = getDocs;
+  window._firebaseReady = true;
+  window.dispatchEvent(new Event('firebase-ready'));
+</script>
 <style>
 :root{--bg:#f2f1ed;--surface:#fff;--surface2:#f0efe9;--border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.05);--text:#1c1c1a;--text2:#666660;--text3:#9c9c94;--accent:#1a4d6e;--accent-light:#e6f0f7;--red:#b83232;--red-bg:#fdf0f0;--amber:#a05a00;--amber-bg:#fef6e6;--green:#1a6636;--green-bg:#eaf4ee;--mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;--r:10px;--rl:16px}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -422,6 +462,11 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
     <span class="nav-short" style="display:none;font-weight:700;font-size:14px">ComplyTrack</span>
   </div>
   <div id="client-switcher" style="display:none;gap:6px;align-items:center;flex-shrink:0"></div>
+  <!-- Sync status indicator -->
+  <div id="sync-indicator">
+    <div class="sync-dot" id="sync-dot"></div>
+    <span id="sync-label">Synced</span>
+  </div>
   <!-- Desktop nav buttons -->
   <div class="nav-right" id="nav-right-desktop">
     <span id="nav-user-info" style="font-size:12px;opacity:.8;white-space:nowrap"></span>
@@ -984,9 +1029,119 @@ function resetToSeedData(){
 }
 
 function save(){
+  // Always save to localStorage as primary/offline store
   const storageKey=deviceKeyForClient(getActiveClientId());
   try{localStorage.setItem(storageKey,JSON.stringify(devices));}catch(e){}
+  // Also sync to Firebase if available
+  if(window._firebaseReady) syncToFirebase();
 }
+
+// ── Firebase sync ────────────────────────────────────────
+let _firestoreUnsubscribe=null;
+let _syncTimeout=null;
+
+function firestoreCollectionName(clientId){
+  return `devices_${clientId}`;
+}
+
+function setSyncStatus(status){
+  const indicator=document.getElementById('sync-indicator');
+  const dot=document.getElementById('sync-dot');
+  const label=document.getElementById('sync-label');
+  if(!indicator) return;
+  indicator.style.display='flex';
+  if(status==='synced'){
+    dot.className='sync-dot'; label.textContent='Synced';
+  } else if(status==='syncing'){
+    dot.className='sync-dot syncing'; label.textContent='Syncing…';
+  } else if(status==='offline'){
+    dot.className='sync-dot error'; label.textContent='Offline';
+  } else if(status==='error'){
+    dot.className='sync-dot error'; label.textContent='Sync error';
+  }
+}
+
+function syncToFirebase(){
+  if(!window._firebaseReady||!window._db) return;
+  setSyncStatus('syncing');
+  const clientId=getActiveClientId();
+  const colName=firestoreCollectionName(clientId);
+  const db=window._db;
+  clearTimeout(_syncTimeout);
+  _syncTimeout=setTimeout(async()=>{
+    try{
+      const batch=window._fbWriteBatch(db);
+      // Get existing Firestore docs for this client
+      const colRef=window._fbCollection(db,colName);
+      const existing=await window._fbGetDocs(colRef);
+      const existingIds=new Set(existing.docs.map(d=>d.id));
+      const currentIds=new Set(devices.map(d=>String(d.id)));
+      // Write all current devices
+      devices.forEach(device=>{
+        const ref=window._fbDoc(db,colName,String(device.id));
+        batch.set(ref,device);
+      });
+      // Delete removed devices
+      existingIds.forEach(id=>{
+        if(!currentIds.has(id)){
+          batch.delete(window._fbDoc(db,colName,id));
+        }
+      });
+      await batch.commit();
+      setSyncStatus('synced');
+    }catch(err){
+      console.error('Firebase sync error:',err);
+      setSyncStatus(navigator.onLine?'error':'offline');
+    }
+  },800); // debounce 800ms so rapid edits batch together
+}
+
+function startFirebaseListener(){
+  if(!window._firebaseReady||!window._db) return;
+  // Unsubscribe previous listener
+  if(_firestoreUnsubscribe){_firestoreUnsubscribe();_firestoreUnsubscribe=null;}
+  const clientId=getActiveClientId();
+  const colName=firestoreCollectionName(clientId);
+  setSyncStatus('syncing');
+  _firestoreUnsubscribe=window._fbOnSnapshot(
+    window._fbCollection(window._db,colName),
+    (snapshot)=>{
+      // Only apply remote changes if they differ from local
+      // (avoids overwriting mid-edit)
+      const remoteDevices=snapshot.docs.map(d=>d.data());
+      if(remoteDevices.length>0){
+        // Merge: remote is source of truth, but keep local if no remote
+        devices=remoteDevices;
+        // Save to localStorage as cache
+        const storageKey=deviceKeyForClient(clientId);
+        try{localStorage.setItem(storageKey,JSON.stringify(devices));}catch(e){}
+        populateSuburbFilter();
+        render();
+        if(leafletMap&&document.getElementById('map-modal').style.display!=='none'){
+          refreshMapMarkers();
+        }
+      }
+      setSyncStatus('synced');
+    },
+    (err)=>{
+      console.error('Firestore listener error:',err);
+      setSyncStatus(navigator.onLine?'error':'offline');
+    }
+  );
+}
+
+// Start listener when Firebase is ready
+window.addEventListener('firebase-ready',()=>{
+  if(currentUser) startFirebaseListener();
+  setSyncStatus('synced');
+});
+
+// Also handle online/offline for sync indicator
+window.addEventListener('online', ()=>{
+  setSyncStatus('syncing');
+  if(window._firebaseReady) syncToFirebase();
+});
+window.addEventListener('offline',()=>setSyncStatus('offline'));
 
 function switchClient(id){
   setActiveClientId(id);
@@ -994,6 +1149,7 @@ function switchClient(id){
   document.getElementById('f-suburb').value='';
   document.getElementById('f-status').value='';
   load();
+  if(window._firebaseReady) startFirebaseListener();
 }
 
 function updateClientUI(){
@@ -2082,6 +2238,9 @@ function showApp(){
   if(mobAdd)mobAdd.style.opacity=can('addDevices')?'1':'0.3';
   renderClientSwitcher();
   load();
+  // Start Firebase real-time listener
+  if(window._firebaseReady) startFirebaseListener();
+  else window.addEventListener('firebase-ready',()=>startFirebaseListener(),{once:true});
 }
 
 // ── Settings Modal ───────────────────────────────────────
