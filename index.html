@@ -528,7 +528,7 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
       <option>October</option><option>November</option><option>December</option>
     </select>
     <!-- Sort nearest -->
-    <button onclick="toggleMobileMenu();sortByNearest()" style="font-family:var(--sans);width:100%;box-sizing:border-box;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:#fff;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px">
+    <button id="mob-sort-btn" onclick="toggleMobileMenu();sortByNearest()" style="font-family:var(--sans);width:100%;box-sizing:border-box;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:#fff;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .15s">
       <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="2" stroke="white" stroke-width="1.4"/><path d="M6.5 1v1.5M6.5 10V12M1 6.5h1.5M10 6.5H12" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg>
       <span id="mob-sort-label">Sort by nearest</span>
     </button>
@@ -2544,6 +2544,12 @@ function toggleMobileMenu(){
     // Sync sort label
     const sl=document.getElementById('mob-sort-label');
     if(sl) sl.textContent=sortGpsOrigin?'📍 Nearest first — tap to cancel':'Sort by nearest';
+    const sortBtn=document.getElementById('mob-sort-btn');
+    if(sortBtn){
+      sortBtn.style.background=sortGpsOrigin?'var(--accent)':'rgba(255,255,255,.1)';
+      sortBtn.style.border=sortGpsOrigin?'none':'1px solid rgba(255,255,255,.25)';
+      sortBtn.style.fontWeight=sortGpsOrigin?'700':'500';
+    }
     syncStatusPillStyles();
   }
 }
