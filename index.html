@@ -562,10 +562,10 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
   </div>
   <div id="alert-area"></div>
   <div class="metrics" id="metrics"></div>
-  <!-- Mobile filter status bar — shows active filters + count -->
-  <div id="mob-filter-bar" style="display:none;padding:6px 0.75rem;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
-    <div id="mob-filter-tags" style="display:flex;gap:5px;flex-wrap:wrap;flex:1"></div>
-    <span id="mob-tcount" style="font-size:12px;color:var(--text3);white-space:nowrap;flex-shrink:0"></span>
+  <!-- Mobile month quick-select pills + count -->
+  <div id="mob-filter-bar" style="display:none;padding:5px 0.75rem 4px;display:flex;align-items:center;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none">
+    <div id="mob-month-pills" style="display:flex;gap:5px;flex-shrink:0"></div>
+    <span id="mob-tcount" style="font-size:12px;color:var(--text3);white-space:nowrap;flex-shrink:0;margin-left:auto;padding-left:4px"></span>
   </div>
   <div class="toolbar">
     <div class="sw">
@@ -1374,6 +1374,32 @@ function fmtDate(d){
   const[y,m,day]=d.split('-');return`${day}/${m}/${y}`;
 }
 
+function renderMonthPills(){
+  const pills=document.getElementById('mob-month-pills');
+  if(!pills) return;
+  const now=new Date();
+  const cur=now.getMonth();
+  // Show 3 months: previous, current, next
+  const indices=[(cur+11)%12, cur, (cur+1)%12];
+  const selected=document.getElementById('f-sched-month').value;
+  pills.innerHTML=indices.map(i=>{
+    const name=MONTH_NAMES[i];
+    const isSelected=selected===name;
+    return `<button onclick="selectMonthPill('${name}')" style="font-family:var(--sans);font-size:12px;font-weight:${isSelected?'700':'500'};padding:5px 12px;border-radius:20px;border:1px solid ${isSelected?'transparent':'rgba(0,0,0,.12)'};background:${isSelected?'var(--accent)':'var(--surface)'};color:${isSelected?'#fff':'var(--text2)'};cursor:pointer;white-space:nowrap;transition:all .15s;flex-shrink:0">${name}</button>`;
+  }).join('');
+}
+
+function selectMonthPill(month){
+  const sel=document.getElementById('f-sched-month');
+  const mobSel=document.getElementById('mob-f-month');
+  // Toggle off if already selected
+  const newVal=sel.value===month?'':month;
+  sel.value=newVal;
+  if(mobSel) mobSel.value=newVal;
+  populateSuburbFilter();
+  render();
+}
+
 function render(){
   const q=document.getElementById('search').value.toLowerCase();
   const fsm=document.getElementById('f-sched-month').value;
@@ -1418,9 +1444,10 @@ function render(){
 
   const countText=filtered.length!==devices.length?`${filtered.length} of ${devices.length} devices`:`${devices.length} devices`;
   document.getElementById('tcount').textContent=countText;
-  // Update mobile filter status bar
+  // Update mobile count and month pills
   const mobCount=document.getElementById('mob-tcount');
   if(mobCount) mobCount.textContent=countText;
+  renderMonthPills();
   const mobTags=document.getElementById('mob-filter-tags');
   if(mobTags){
     const tags=[];
@@ -1501,7 +1528,7 @@ function render(){
       <div class="metric"><div class="mlabel">${fsm} — Total due</div><div class="mval">${monthTotal}</div><div class="msub">Valves scheduled this month</div></div>
       <div class="metric"><div class="mlabel">${fsm} — Tested</div><div class="mval ok">${monthTested}</div><div class="msub">${monthTotal?Math.round((monthTested/monthTotal)*100):0}% complete</div></div>
       <div class="metric"><div class="mlabel">${fsm} — Remaining</div><div class="mval ${monthRemaining>0?'warn':''}">${monthRemaining}</div><div class="msub">Still to be tested</div></div>
-      <div class="metric"><div class="mlabel">${fsm} — Overdue</div><div class="mval ${monthOverdue>0?'danger':''}">${monthOverdue}</div><div class="msub">${monthOverdue>0?'Past deadline':'None overdue'}</div></div>
+      <div class="metric"><div class="mlabel">Overdue (all)</div><div class="mval ${overdue>0?'danger':''}">${overdue}</div><div class="msub">${overdue>0?'Past deadline':'None overdue'}</div></div>
     `;
   } else {
     document.getElementById('metrics').innerHTML=`
