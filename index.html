@@ -543,16 +543,10 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
       <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="6" r="3" stroke="white" stroke-width="1.4"/><path d="M7.5 14C7.5 14 2 10 2 6a5.5 5.5 0 0111 0C13 10 7.5 14 7.5 14z" stroke="white" stroke-width="1.4" fill="none"/></svg>
       Map View
     </button>
-    <button id="mob-menu-settings" onclick="openSettings('users');toggleMobileMenu()" style="display:none;font-family:var(--sans);background:var(--accent);border:none;color:#fff;padding:14px 12px;font-size:13px;font-weight:500;cursor:pointer;align-items:center;gap:8px;justify-content:center">
+    <button id="mob-menu-settings" onclick="openSettings('users');toggleMobileMenu()" style="font-family:var(--sans);background:var(--accent);border:none;color:#fff;padding:14px 12px;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:8px;justify-content:center">
       &#9881; Settings
     </button>
-    <button id="mob-menu-export" onclick="exportCSV();toggleMobileMenu()" style="font-family:var(--sans);background:var(--accent);border:none;color:#fff;padding:14px 12px;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:8px;justify-content:center">
-      &#8595; Export CSV
-    </button>
-    <button id="mob-menu-reset" onclick="resetToSeedData();toggleMobileMenu()" style="display:none;font-family:var(--sans);background:rgba(184,50,50,.3);border:none;color:#fff;padding:14px 12px;font-size:13px;font-weight:500;cursor:pointer;align-items:center;gap:8px;justify-content:center">
-      &#8635; Restore default devices
-    </button>
-    <button onclick="doLogout()" style="font-family:var(--sans);background:var(--accent);border:none;color:rgba(255,255,255,.7);padding:14px 12px;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:8px;justify-content:center">
+    <button onclick="doLogout()" style="grid-column:1/-1;font-family:var(--sans);background:var(--accent);border:none;color:rgba(255,255,255,.7);padding:12px;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:8px;justify-content:center">
       Sign out
     </button>
   </div>
@@ -858,8 +852,8 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
         <button class="stab" id="stab-clients" onclick="switchSettingsTab('clients')" style="font-family:var(--sans);font-size:13px;font-weight:500;padding:8px 16px;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--text2);white-space:nowrap;flex-shrink:0">
           🗂 Clients
         </button>
-        <button class="stab" id="stab-backup" onclick="switchSettingsTab('backup')" style="font-family:var(--sans);font-size:13px;font-weight:500;padding:8px 16px;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--text2);white-space:nowrap;flex-shrink:0">
-          💾 Backup
+        <button class="stab" id="stab-data" onclick="switchSettingsTab('data')" style="font-family:var(--sans);font-size:13px;font-weight:500;padding:8px 16px;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--text2);white-space:nowrap;flex-shrink:0">
+          ⚙️ Data
         </button>
       </div>
     </div>
@@ -887,37 +881,57 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
     </div>
 
     <!-- Backup tab -->
-    <div id="settings-pane-backup" style="display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:1.25rem 1.25rem 2rem;flex:1">
+    <!-- Data tab — export, backup, restore, reset, sign out -->
+    <div id="settings-pane-data" style="display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:1.25rem 1.25rem 2rem;flex:1">
+      <div style="display:flex;flex-direction:column;gap:12px">
 
-      <div style="margin-bottom:1.75rem">
-        <div style="font-size:14px;font-weight:600;margin-bottom:4px">📤 Backup data</div>
-        <p style="font-size:13px;color:var(--text2);margin-bottom:1rem;line-height:1.5">Downloads a complete snapshot of all devices, test records, users, clients and settings as a JSON file.</p>
-        <button class="btn btn-p" onclick="backupData()" style="width:100%;padding:13px;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1v9M5 7l3 3 3-3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12v1a1 1 0 001 1h10a1 1 0 001-1v-1" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
-          Download backup
+        <!-- Export CSV -->
+        <button id="settings-export-btn" onclick="exportCSV();closeUserMgmt()" style="font-family:var(--sans);width:100%;padding:13px;font-size:14px;font-weight:500;border-radius:var(--r);border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+          &#8595; Export CSV
         </button>
-      </div>
 
-      <div style="border-top:2px solid var(--border2);padding-top:1.5rem">
-        <div style="font-size:14px;font-weight:600;margin-bottom:4px">📥 Restore from backup</div>
-        <p style="font-size:13px;color:var(--text2);margin-bottom:1rem;line-height:1.5">Select a previously downloaded backup file. <strong style="color:var(--red)">This will overwrite all current data.</strong></p>
-        <label style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;border-radius:var(--r);border:2px dashed var(--border);background:var(--surface2);cursor:pointer;font-size:14px;font-weight:500;color:var(--text2);box-sizing:border-box">
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 11V2M5 5l3-3 3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12v1a1 1 0 001 1h10a1 1 0 001-1v-1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          <span id="restore-file-label">Choose backup file…</span>
-          <input type="file" id="restore-file-input" accept=".json" style="display:none" onchange="restoreFileSelected(this)">
-        </label>
-        <div id="restore-preview" style="display:none;margin-top:1rem;padding:12px;background:var(--surface2);border-radius:var(--r);border:1px solid var(--border2);font-size:13px;line-height:1.8;color:var(--text)"></div>
-        <button id="restore-confirm-btn" onclick="restoreData()" style="display:none;width:100%;margin-top:1rem;padding:13px;font-size:14px;font-family:var(--sans);font-weight:600;border:none;border-radius:var(--r);background:#b83232;color:#fff;cursor:pointer;display:none">
-          ⚠️ Restore — overwrites all current data
+        <!-- Backup -->
+        <div style="border-top:1px solid var(--border2);padding-top:1rem">
+          <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text2)">📤 Backup data</div>
+          <p style="font-size:12px;color:var(--text3);margin-bottom:8px;line-height:1.5">Download a complete snapshot of all devices, users and settings.</p>
+          <button class="btn btn-p" onclick="backupData()" style="width:100%;padding:13px;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 1v9M5 7l3 3 3-3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12v1a1 1 0 001 1h10a1 1 0 001-1v-1" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+            Download backup
+          </button>
+        </div>
+
+        <!-- Restore from backup -->
+        <div style="border-top:1px solid var(--border2);padding-top:1rem">
+          <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text2)">📥 Restore from backup</div>
+          <p style="font-size:12px;color:var(--text3);margin-bottom:8px;line-height:1.5">Select a backup file. <strong style="color:var(--red)">Overwrites all current data.</strong></p>
+          <label style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;border-radius:var(--r);border:2px dashed var(--border);background:var(--surface2);cursor:pointer;font-size:14px;font-weight:500;color:var(--text2);box-sizing:border-box">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 11V2M5 5l3-3 3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12v1a1 1 0 001 1h10a1 1 0 001-1v-1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <span id="restore-file-label">Choose backup file…</span>
+            <input type="file" id="restore-file-input" accept=".json" style="display:none" onchange="restoreFileSelected(this)">
+          </label>
+          <div id="restore-preview" style="display:none;margin-top:1rem;padding:12px;background:var(--surface2);border-radius:var(--r);border:1px solid var(--border2);font-size:13px;line-height:1.8;color:var(--text)"></div>
+          <button id="restore-confirm-btn" onclick="restoreData()" style="display:none;width:100%;margin-top:1rem;padding:13px;font-size:14px;font-family:var(--sans);font-weight:600;border:none;border-radius:var(--r);background:#b83232;color:#fff;cursor:pointer">
+            ⚠️ Restore — overwrites all current data
+          </button>
+        </div>
+
+        <!-- Restore default devices (admin only) -->
+        <button id="settings-reset-btn" onclick="closeUserMgmt();resetToSeedData()" style="display:none;font-family:var(--sans);width:100%;padding:13px;font-size:14px;font-weight:500;border-radius:var(--r);border:1px solid rgba(184,50,50,.3);background:rgba(184,50,50,.06);color:var(--red);cursor:pointer;">
+          &#8635; Restore default devices
         </button>
-      </div>
 
+        <!-- Sign out -->
+        <div style="border-top:1px solid var(--border2);padding-top:1rem">
+          <button onclick="doLogout();closeUserMgmt()" style="font-family:var(--sans);width:100%;padding:13px;font-size:14px;font-weight:500;border-radius:var(--r);border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+            Sign out
+          </button>
+        </div>
+
+      </div>
     </div>
 
   </div>
 </div>
-
-<!-- Add Client Modal -->
 <div class="mbg" id="add-client-modal" style="display:none" onclick="if(event.target===this)this.style.display='none'">
   <div class="modal" style="max-width:460px">
     <div class="mhdr">
@@ -2594,6 +2608,11 @@ function showApp(){
   if(mExport)mExport.style.display=can('exportCSV')?'flex':'none';
   const mAdd=document.getElementById('mob-menu-add');
   if(mAdd)mAdd.style.display=can('addDevices')?'flex':'none';
+  // Settings modal action buttons
+  const sExport=document.getElementById('settings-export-btn');
+  if(sExport)sExport.style.display=can('exportCSV')?'flex':'none';
+  const sReset=document.getElementById('settings-reset-btn');
+  if(sReset)sReset.style.display=can('manageUsers')?'block':'none';
   // Mobile add button
   const mobAdd=document.getElementById('mob-add-btn');
   if(mobAdd)mobAdd.style.opacity=can('addDevices')?'1':'0.3';
@@ -2907,7 +2926,8 @@ function deleteClient(id){
 
 function switchSettingsTab(tab){
   if(tab==='client') tab='clients';
-  ['users','clients','backup'].forEach(t=>{
+  if(tab==='backup') tab='data'; // redirect old backup tab to data
+  ['users','clients','data'].forEach(t=>{
     const pane=document.getElementById('settings-pane-'+t);
     if(pane) pane.style.display=t===tab?'block':'none';
     const btn=document.getElementById('stab-'+t);
@@ -2918,12 +2938,16 @@ function switchSettingsTab(tab){
     }
   });
   if(tab==='clients') renderClientsList();
-  if(tab==='backup'){
-    // Reset restore UI when switching to tab
-    document.getElementById('restore-file-label').textContent='Choose backup file…';
-    document.getElementById('restore-preview').style.display='none';
-    document.getElementById('restore-confirm-btn').style.display='none';
-    if(document.getElementById('restore-file-input')) document.getElementById('restore-file-input').value='';
+  if(tab==='data'){
+    // Reset restore UI when switching to data tab
+    const lbl=document.getElementById('restore-file-label');
+    if(lbl) lbl.textContent='Choose backup file…';
+    const prev=document.getElementById('restore-preview');
+    if(prev) prev.style.display='none';
+    const btn=document.getElementById('restore-confirm-btn');
+    if(btn) btn.style.display='none';
+    const inp=document.getElementById('restore-file-input');
+    if(inp) inp.value='';
   }
 }
 
