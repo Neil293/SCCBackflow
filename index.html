@@ -507,15 +507,18 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
       <select id="mob-f-suburb" onchange="document.getElementById('f-suburb').value=this.value;render()" style="font-family:var(--sans);font-size:14px;padding:9px 8px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12);color:#fff;outline:none;flex:1;min-width:0">
         <option value="">All suburbs</option>
       </select>
-      <select id="mob-f-status" onchange="document.getElementById('f-status').value=this.value;render()" style="font-family:var(--sans);font-size:14px;padding:9px 8px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12);color:#fff;outline:none;flex:1;min-width:0">
-        <option value="">All statuses</option>
-        <option value="overdue">Overdue</option>
-        <option value="due">Due this month</option>
-        <option value="due_next">Due next month</option>
-        <option value="upcoming">Upcoming</option>
-        <option value="failed">Failed</option>
-        <option value="complete">Complete</option>
-      </select>
+      <!-- status filter replaced by pills below -->
+    </div>
+    <!-- Status pills — multi-select -->
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px" id="mob-status-pills">
+      <button onclick="setAllStatuses()" style="font-family:var(--sans);font-size:12px;font-weight:500;padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:rgba(255,255,255,.85);cursor:pointer">All</button>
+      <button onclick="resetStatusFilter()" style="font-family:var(--sans);font-size:12px;font-weight:500;padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:rgba(255,255,255,.85);cursor:pointer">Reset</button>
+      <button onclick="toggleStatusPill('overdue',this)" data-status="overdue" style="font-family:var(--sans);font-size:12px;font-weight:700;padding:5px 12px;border-radius:20px;border:none;background:#c0392b;color:#fff;cursor:pointer">Overdue</button>
+      <button onclick="toggleStatusPill('due',this)" data-status="due" style="font-family:var(--sans);font-size:12px;font-weight:700;padding:5px 12px;border-radius:20px;border:none;background:#e67e22;color:#fff;cursor:pointer">Due this month</button>
+      <button onclick="toggleStatusPill('due_next',this)" data-status="due_next" style="font-family:var(--sans);font-size:12px;font-weight:500;padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);cursor:pointer">Next month</button>
+      <button onclick="toggleStatusPill('upcoming',this)" data-status="upcoming" style="font-family:var(--sans);font-size:12px;font-weight:500;padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);cursor:pointer">Upcoming</button>
+      <button onclick="toggleStatusPill('failed',this)" data-status="failed" style="font-family:var(--sans);font-size:12px;font-weight:500;padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);cursor:pointer">Failed</button>
+      <button onclick="toggleStatusPill('complete',this)" data-status="complete" style="font-family:var(--sans);font-size:12px;font-weight:500;padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);cursor:pointer">Complete</button>
     </div>
     <!-- Month filter -->
     <select id="mob-f-month" onchange="document.getElementById('f-sched-month').value=this.value;populateSuburbFilter();render()" style="font-family:var(--sans);font-size:14px;padding:9px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12);color:#fff;outline:none;width:100%;box-sizing:border-box;margin-bottom:8px">
@@ -1279,7 +1282,7 @@ function switchClient(id){
   setActiveClientId(id);
   document.getElementById('search').value='';
   document.getElementById('f-suburb').value='';
-  document.getElementById('f-status').value='';
+  window._activeStatuses=new Set(['overdue','due']);
   load();
   if(window._firebaseReady) startFirebaseListener();
 }
@@ -1374,6 +1377,67 @@ function fmtDate(d){
   const[y,m,day]=d.split('-');return`${day}/${m}/${y}`;
 }
 
+// ── Multi-select status filter ───────────────────────────
+// Default: show overdue + due this month
+window._activeStatuses = new Set(['overdue','due']);
+
+const STATUS_COLOURS = {
+  overdue: {on:'#c0392b', label:'Overdue'},
+  due:     {on:'#e67e22', label:'Due this month'},
+  due_next:{on:'#1976d2', label:'Next month'},
+  upcoming:{on:'#64b5f6', label:'Upcoming'},
+  failed:  {on:'#b83232', label:'Failed'},
+  complete:{on:'#1a6636', label:'Complete'},
+};
+
+function setAllStatuses(){
+  window._activeStatuses=new Set(['overdue','due','due_next','upcoming','failed','complete','pending']);
+  syncStatusPillStyles();
+  render();
+}
+
+function resetStatusFilter(){
+  window._activeStatuses=new Set(['overdue','due']);
+  syncStatusPillStyles();
+  render();
+}
+
+function toggleStatusPill(status, btn){
+  const active = window._activeStatuses;
+  if(active.has(status)){
+    active.delete(status);
+    btn.style.background='rgba(255,255,255,.1)';
+    btn.style.border='1px solid rgba(255,255,255,.3)';
+    btn.style.color='rgba(255,255,255,.7)';
+    btn.style.fontWeight='500';
+  } else {
+    active.add(status);
+    btn.style.background=STATUS_COLOURS[status]?.on||'var(--accent)';
+    btn.style.border='none';
+    btn.style.color='#fff';
+    btn.style.fontWeight='700';
+  }
+  render();
+}
+
+function syncStatusPillStyles(){
+  const active=window._activeStatuses;
+  document.querySelectorAll('#mob-status-pills button').forEach(btn=>{
+    const s=btn.dataset.status;
+    if(active.has(s)){
+      btn.style.background=STATUS_COLOURS[s]?.on||'var(--accent)';
+      btn.style.border='none';
+      btn.style.color='#fff';
+      btn.style.fontWeight='700';
+    } else {
+      btn.style.background='rgba(255,255,255,.1)';
+      btn.style.border='1px solid rgba(255,255,255,.3)';
+      btn.style.color='rgba(255,255,255,.7)';
+      btn.style.fontWeight='500';
+    }
+  });
+}
+
 function renderMonthPills(){
   const pills=document.getElementById('mob-month-pills');
   if(!pills) return;
@@ -1403,7 +1467,7 @@ function selectMonthPill(month){
 function render(){
   const q=document.getElementById('search').value.toLowerCase();
   const fsm=document.getElementById('f-sched-month').value;
-  const fst=document.getElementById('f-status').value;
+  const fst=window._activeStatuses; // Set of active status strings
   // Always group by suburb unless GPS sort is active
   const grp=!sortGpsOrigin;
 
@@ -1420,7 +1484,7 @@ function render(){
     if(q&&![d.suburb,d.make,d.model,d.serial,d.location,d.notes||''].join(' ').toLowerCase().includes(q))return false;
     if(fc&&d.suburb!==fc)return false;
     if(fsm&&d.scheduledMonth!==fsm)return false;
-    if(fst&&getStatus(d)!==fst)return false;
+    if(fst&&fst.size>0&&!fst.has(getStatus(d)))return false;
     return true;
   });
 
@@ -1455,7 +1519,7 @@ function render(){
     if(q2) tags.push(`🔍 "${q2}"`);
     if(fc) tags.push(`📍 ${fc}`);
     if(fsm) tags.push(`📅 ${fsm}`);
-    if(fst) tags.push(fst.replace('_',' '));
+    if(fst&&fst.size>0)[...fst].forEach(s=>tags.push(s.replace('_',' ')));
     if(sortGpsOrigin) tags.push('📍 Nearest first');
     mobTags.innerHTML=tags.map(t=>`<span style="font-size:11px;background:var(--accent-light);color:var(--accent);border:1px solid rgba(26,77,110,.15);padding:2px 8px;border-radius:20px;white-space:nowrap">${t}</span>`).join('');
   }
@@ -2478,12 +2542,13 @@ function toggleMobileMenu(){
     const mfs=document.getElementById('mob-f-suburb');
     if(mfs) mfs.value=document.getElementById('f-suburb').value;
     const mfst=document.getElementById('mob-f-status');
-    if(mfst) mfst.value=document.getElementById('f-status').value;
+    if(mfst) mfst.value='';
     const mfm=document.getElementById('mob-f-month');
     if(mfm) mfm.value=document.getElementById('f-sched-month').value;
     // Sync sort label
     const sl=document.getElementById('mob-sort-label');
     if(sl) sl.textContent=sortGpsOrigin?'📍 Nearest first — tap to cancel':'Sort by nearest';
+    syncStatusPillStyles();
   }
 }
 
