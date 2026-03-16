@@ -3,9 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCC Backflow Device Register</title>
+<title>ComplyTrack</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a4d6e">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<style>
+#offline-banner{display:none;position:fixed;top:52px;left:0;right:0;z-index:400;background:#b83232;color:#fff;font-size:12px;font-weight:600;text-align:center;padding:7px 1rem;letter-spacing:.02em}
+</style>
 <style>
 :root{--bg:#f2f1ed;--surface:#fff;--surface2:#f0efe9;--border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.05);--text:#1c1c1a;--text2:#666660;--text3:#9c9c94;--accent:#1a4d6e;--accent-light:#e6f0f7;--red:#b83232;--red-bg:#fdf0f0;--amber:#a05a00;--amber-bg:#fef6e6;--green:#1a6636;--green-bg:#eaf4ee;--mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;--r:10px;--rl:16px}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -80,7 +85,7 @@ tbody tr:hover .row-acts{opacity:1}
 .empty{padding:3rem;text-align:center;color:var(--text3);font-size:13px}
 .grp-hdr td{background:var(--surface2);font-weight:600;font-size:12px;color:var(--text2);letter-spacing:.04em;text-transform:uppercase;padding:8px 14px;border-bottom:1px solid var(--border2)}
 .mbg{position:fixed;inset:0;background:rgba(0,0,0,.38);display:flex;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(2px);padding:1rem}
-.modal{background:var(--surface);border-radius:var(--rl);border:1px solid var(--border2);padding:1.75rem;width:520px;max-width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.14)}
+.modal{background:var(--surface);border-radius:var(--rl);border:1px solid var(--border2);padding:1.75rem;width:min(520px,100vw);max-width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.14)}
 .mhdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.25rem;gap:12px}
 .mtitle{font-size:16px;font-weight:600;letter-spacing:-0.01em}
 .msub-info{font-size:12px;color:var(--text2);margin-top:3px}
@@ -114,135 +119,217 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
 .mfbtn.active{background:rgba(255,255,255,.25);border-color:rgba(255,255,255,.5);color:#fff;font-weight:600}
 @keyframes bf-pulse{0%{transform:scale(.6);opacity:.8}100%{transform:scale(2.2);opacity:0}}
 @media(max-width:700px){
-  /* ── Layout ── */
-  nav{padding:0 1rem;height:52px}
-  .nav-brand{font-size:14px}
+  /* ═══════════════════════════════════════
+     LAYOUT
+  ═══════════════════════════════════════ */
+  nav{padding:0 0.75rem;height:52px;gap:6px}
+  .nav-brand{font-size:13px;gap:6px;flex-shrink:1;min-width:0;overflow:hidden}
   .nav-brand span.nav-full{display:none}
-  main{padding:0.75rem 0 5rem}
-  .page-hdr{padding:0 1rem;margin-bottom:1rem}
-  .page-hdr h1{font-size:18px}
-  .page-hdr p{font-size:12px}
+  .nav-brand>div:first-child{flex-shrink:0}
+  main{padding:0.75rem 0 6rem}
+  .page-hdr{padding:0 1rem;margin-bottom:0.75rem}
+  .page-hdr h1{font-size:17px}
 
-  /* ── Nav buttons → icon-only bar ── */
-  .nbtn{font-size:11px;padding:5px 9px}
-  #nav-export-btn .btn-label{display:none}
-  #nav-add-btn .btn-label{display:none}
+  /* ═══════════════════════════════════════
+     NAV BUTTONS — hamburger on mobile
+  ═══════════════════════════════════════ */
+  .nbtn{font-size:11px;padding:5px 8px}
+  #nav-right-desktop{display:none!important}
+  #nav-hamburger{display:flex!important}
+  #nav-add-btn{display:none!important}
+  #client-switcher{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-shrink:1!important;max-width:35vw}
+  .nav-full{display:none}
+  .nav-short{display:inline!important}
 
-  /* ── Metrics 2-up ── */
-  .metrics{grid-template-columns:repeat(2,1fr);gap:8px;padding:0 1rem;margin-bottom:1rem}
-  .metric{padding:12px 14px}
-  .mval{font-size:24px}
+  /* ═══════════════════════════════════════
+     METRICS
+  ═══════════════════════════════════════ */
+  .metrics{grid-template-columns:repeat(2,1fr);gap:6px;padding:0 0.75rem;margin-bottom:0.75rem}
+  .metric{padding:10px 12px}
+  .mval{font-size:22px}
   .mlabel{font-size:10px}
+  .msub{font-size:10px}
 
-  /* ── Alerts ── */
-  #alert-area{padding:0 1rem}
-  .alert{font-size:12px;padding:10px 12px}
+  /* ═══════════════════════════════════════
+     ALERTS
+  ═══════════════════════════════════════ */
+  #alert-area{padding:0 0.75rem}
+  .alert{font-size:12px;padding:9px 11px}
 
-  /* ── Toolbar → stacked ── */
-  .toolbar{flex-direction:column;align-items:stretch;gap:8px;padding:0 1rem;margin-bottom:8px}
+  /* ═══════════════════════════════════════
+     TOOLBAR / FILTERS
+  ═══════════════════════════════════════ */
+  .toolbar{flex-direction:column;align-items:stretch;gap:7px;padding:0 0.75rem;margin-bottom:8px}
   .sw{min-width:unset;max-width:unset;width:100%}
-  .sw input[type=text]{width:100%;font-size:14px;padding:10px 10px 10px 34px;border-radius:12px}
-  .toolbar select{width:100%;font-size:14px;padding:10px 28px 10px 12px;border-radius:12px}
+  .sw input[type=text]{width:100%;font-size:16px;padding:11px 11px 11px 34px;border-radius:12px}
+  .toolbar select{width:100%;font-size:16px;padding:11px 28px 11px 12px;border-radius:12px}
   .toolbar .tcount{margin-left:0;font-size:12px}
-  /* Filters row: 2-up grid */
-  #mobile-filter-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  /* Group toggle */
+  #mobile-filter-row{display:grid;grid-template-columns:1fr 1fr;gap:7px}
   #grp-wrap{display:flex;align-items:center;gap:8px;font-size:14px}
 
-  /* ── Hide desktop table, show cards ── */
+  /* ═══════════════════════════════════════
+     DEVICE CARDS (table → cards)
+  ═══════════════════════════════════════ */
   .tcard{border-radius:0;border-left:none;border-right:none;background:transparent;border:none;box-shadow:none}
   table,thead,tbody,th,td,tr{display:block}
   thead{display:none}
-  tbody tr{border:none;cursor:default;margin:0 1rem 8px;border-radius:14px;background:var(--surface);border:1px solid var(--border2);box-shadow:0 1px 4px rgba(0,0,0,.06);padding:0;overflow:hidden}
+  tbody tr{border:none;cursor:pointer;margin:0 0.75rem 8px;border-radius:14px;background:var(--surface);border:1px solid var(--border2);box-shadow:0 1px 4px rgba(0,0,0,.06);padding:0;overflow:hidden;display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto auto;gap:0}
   tbody tr.row-complete{border-left:4px solid #1a6636;background:var(--surface)}
   tbody tr.row-fail{border-left:4px solid #b83232;background:var(--surface)}
   tbody tr:hover{background:var(--surface)}
-  /* Card layout via CSS grid inside each row */
-  tbody tr{display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto auto;gap:0}
   td{padding:0;border:none}
-  /* Map btn cell */
-  td:nth-child(1){grid-column:1;grid-row:1/4;display:flex;align-items:center;justify-content:center;padding:12px 8px 12px 12px;width:44px}
-  /* Suburb cell */
-  td:nth-child(2){grid-column:2;grid-row:1;padding:12px 8px 2px;font-weight:600;font-size:13px;color:var(--accent)}
-  /* Size */
+  td:nth-child(1){grid-column:1;grid-row:1/4;display:flex;align-items:center;justify-content:center;padding:12px 6px 12px 10px;width:40px}
+  td:nth-child(2){grid-column:2;grid-row:1;padding:11px 8px 2px;font-weight:600;font-size:13px;color:var(--accent)}
   td:nth-child(3){display:none}
-  /* Serial */
   td:nth-child(4){grid-column:2;grid-row:2;padding:0 8px 2px;font-size:11px;font-family:var(--mono);color:var(--text2)}
-  /* Backflow ID */
   td:nth-child(5){display:none}
-  /* Location */
-  td:nth-child(6){grid-column:2;grid-row:3;padding:0 8px 10px;font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:calc(100vw - 120px)}
-  /* Sched month */
+  td:nth-child(6){grid-column:2;grid-row:3;padding:0 8px 10px;font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:calc(100vw - 110px)}
   td:nth-child(7){grid-column:3;grid-row:1;padding:10px 10px 2px;display:flex;align-items:flex-start;justify-content:flex-end}
-  /* Last tested */
   td:nth-child(8){grid-column:3;grid-row:2;padding:0 10px 2px;font-size:10px;color:var(--text3);text-align:right;white-space:nowrap}
-  /* Result badge */
   td:nth-child(9){grid-column:3;grid-row:3;padding:0 10px 10px;display:flex;align-items:flex-end;justify-content:flex-end}
-  /* Actions */
   td:nth-child(10){display:none}
-
-  /* Tap whole card to open — show tap hint */
-  tbody tr{cursor:pointer}
   .row-acts{display:none}
+  .grp-hdr td{grid-column:1/-1;background:var(--bg);font-size:11px;padding:10px 12px 4px;border-radius:0!important;border:none!important;color:var(--text3);box-shadow:none}
+  tbody tr.grp-hdr{margin:6px 0 0;border-radius:0;border:none;background:transparent;box-shadow:none}
 
-  /* Group header */
-  .grp-hdr td{grid-column:1/-1;background:var(--bg);font-size:11px;padding:12px 16px 4px;border-radius:0;border:none;color:var(--text3);box-shadow:none;margin:0 !important;border-radius:0 !important;border:none !important}
-  tbody tr.grp-hdr{margin:8px 0 0;border-radius:0;border:none;background:transparent;box-shadow:none}
+  /* ═══════════════════════════════════════
+     MODALS — SLIDE-UP BOTTOM SHEETS
+     Key fix: use dvh units + safe area insets
+     so nothing goes off screen
+  ═══════════════════════════════════════ */
+  .mbg{
+    align-items:flex-end !important;
+    justify-content:flex-end !important;
+    padding:0 !important;
+    background:rgba(0,0,0,.55);
+    overflow:hidden;
+    width:100% !important;
+    left:0 !important;
+    right:0 !important;
+    top:0 !important;
+    bottom:0 !important;
+  }
+  .modal{
+    border-radius:22px 22px 0 0 !important;
+    width:100vw !important;
+    max-width:100vw !important;
+    min-width:0 !important;
+    max-height:calc(100dvh - 52px);
+    height:auto;
+    padding:0 !important;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    box-shadow:0 -8px 40px rgba(0,0,0,.3);
+  }
+  /* Drag handle */
+  .modal::before{
+    content:'';
+    display:block;
+    width:40px;height:4px;
+    background:rgba(0,0,0,.15);
+    border-radius:2px;
+    margin:12px auto 0;
+    flex-shrink:0;
+  }
+  /* Modal header stays fixed at top */
+  .mhdr{
+    padding:1rem 1.25rem 0.75rem;
+    flex-shrink:0;
+    border-bottom:1px solid var(--border2);
+    margin-bottom:0;
+  }
+  /* Scrollable body area inside each modal */
+  .modal-body{
+    flex:1;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    padding:1rem 1.25rem;
+    padding-bottom:max(1.5rem, env(safe-area-inset-bottom));
+  }
+  /* Modal footer stays pinned at bottom */
+  .mfooter{
+    flex-shrink:0;
+    padding:0.75rem 1.25rem max(1rem, env(safe-area-inset-bottom));
+    border-top:1px solid var(--border2);
+    margin-top:0;
+  }
 
-  /* ── Modals → slide-up sheets ── */
-  .mbg{align-items:flex-end;padding:0;background:rgba(0,0,0,.5)}
-  .modal{border-radius:20px 20px 0 0;width:100%;max-width:100%;max-height:92vh;padding:1.25rem 1.25rem 2rem}
-  /* Sheet drag handle */
-  .modal::before{content:'';display:block;width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 1rem}
-  .frow{grid-template-columns:1fr 1fr}
-  .info-grid{grid-template-columns:1fr 1fr}
-  .mval{font-size:22px}
+  /* ── Device detail modal specifics ── */
+  #device-modal .modal,
+  #add-modal .modal,
+  #wizard-modal .modal{
+    max-height:calc(100dvh - 52px);
+  }
 
-  /* ── Wizard modal ── */
-  #wizard-modal .modal{border-radius:20px 20px 0 0}
+  /* ── Settings modal — full height with tabs ── */
+  #user-modal .modal{
+    max-height:calc(100dvh - 20px);
+    height:calc(100dvh - 20px);
+  }
+  /* Settings tab scroll area */
+  .settings-pane-inner{
+    flex:1;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    padding:1rem 1rem max(5rem, env(safe-area-inset-bottom));
+  }
+  #settings-pane-users,
+  #settings-pane-clients{
+    padding:1rem 1rem max(5rem, env(safe-area-inset-bottom)) !important;
+    max-height:none !important;
+  }
 
-  /* ── Bigger touch targets ── */
-  .btn{padding:11px 18px;font-size:14px}
+  /* ── Info grids — stack on mobile ── */
+  .info-grid{grid-template-columns:1fr 1fr!important}
+  .frow{grid-template-columns:1fr!important}
+
+  /* ── Buttons — big touch targets ── */
+  .btn{padding:12px 18px;font-size:15px;border-radius:12px}
   .btn-p{padding:12px 20px}
-  .btn-tested{padding:16px;font-size:15px}
-  .rbtn{font-size:13px;padding:8px 14px}
-  .map-btn{padding:6px 10px;font-size:12px}
-  select,input[type=text]{font-size:16px!important} /* prevents iOS zoom */
+  .btn-tested{padding:16px;font-size:16px;border-radius:14px}
+  .rbtn{font-size:13px;padding:9px 14px}
+  .map-btn{padding:7px 11px;font-size:12px}
+  /* Prevent iOS zoom on inputs */
+  select,input[type=text],input[type=email],input[type=password],textarea{font-size:16px!important}
 
-  /* ── Toast at bottom above nav ── */
-  .toast{bottom:5.5rem;right:1rem;left:1rem;text-align:center}
-
-  /* ── User mgmt table responsive ── */
-  .utbl{font-size:12px}
-  .utbl td,.utbl th{padding:8px 6px}
-  #user-modal .modal{padding:1.25rem 1rem 2rem}
-
-  /* ── QR scanner ── */
-  #qr-modal{padding:0;align-items:flex-end}
-  #qr-modal>div{border-radius:20px 20px 0 0;padding:1.25rem 1.25rem 2rem;max-height:95vh;overflow-y:auto}
+  /* ── Toast above bottom nav ── */
+  .toast{bottom:5.5rem;right:0.75rem;left:0.75rem;text-align:center}
 
   /* ── Bottom nav bar ── */
   #mobile-nav{display:flex}
 
-  .nav-full{display:none}
-  .nav-short{display:inline!important}
-  /* Hide nav buttons that are in bottom bar */
-  #nav-add-btn{display:none!important}
-  .nav-right .nbtn:not(#nav-users-btn):not(#nav-reset-btn):not(#nav-export-btn){display:none!important}
-  /* Compact nav right */
-  #nav-export-btn::before{content:'↓';margin-right:3px}
-  /* Client switcher on mobile - scroll horizontally */
-  #client-switcher{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-shrink:1!important;max-width:40vw}
+  /* ── QR scanner ── */
+  #qr-modal{align-items:flex-end}
+  #qr-modal>div{border-radius:22px 22px 0 0;padding:1rem 1rem max(1.5rem,env(safe-area-inset-bottom));max-height:calc(100dvh - 52px);overflow-y:auto}
 
+  /* ── Map filter buttons ── */
+  #map-filter-btns{gap:3px}
+  .mfbtn{font-size:10px;padding:4px 7px}
+
+  /* ── Login screen ── */
+  .login-card{border-radius:20px;padding:2rem 1.5rem;margin:0 0.5rem}
+
+  /* ── User management table ── */
+  .utbl{font-size:12px}
+  .utbl td,.utbl th{padding:7px 5px}
+
+  /* ── Hide desktop footer ── */
+  footer{display:none}
+  /* Hide subtitle on mobile — saves vertical space */
+  #page-subtitle{display:none}
+
+  /* ── Fix: prevent body scroll when modal open ── */
+  body.modal-open{overflow:hidden;height:100%}
 }
 
 /* Desktop: hide mobile-only elements */
 #mobile-nav{display:none}
-#mobile-filter-row{display:contents} /* transparent on desktop */
+#mobile-filter-row{display:contents}
 
 /* ── Auth ── */
-#login-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999;padding:1rem}
-.login-card{background:var(--surface);border-radius:var(--rl);border:1px solid var(--border2);padding:2.5rem 2rem;width:380px;max-width:100%;box-shadow:0 24px 64px rgba(0,0,0,.1)}
+#login-screen{position:fixed;inset:0;background:linear-gradient(135deg,#0d2d44 0%,#1a4d6e 50%,#0d3a55 100%);display:flex;align-items:center;justify-content:center;z-index:9999;padding:1rem}
+.login-card{background:#fff;border-radius:20px;border:none;padding:2.5rem 2rem;width:380px;max-width:100%;box-shadow:0 32px 80px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.05)}
 .login-logo{width:44px;height:44px;background:var(--accent);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem}
 .login-title{font-size:20px;font-weight:600;text-align:center;letter-spacing:-0.02em;margin-bottom:4px}
 .login-sub{font-size:13px;color:var(--text2);text-align:center;margin-bottom:1.75rem}
@@ -262,11 +349,38 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
 <!-- Login Screen -->
 <div id="login-screen">
   <div class="login-card">
-    <div class="login-logo">
-      <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 2C8.24 2 6 4.24 6 7v2H5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7c0-2.76-2.24-5-5-5zm0 2c1.66 0 3 1.34 3 3v2H8V7c0-1.66 1.34-3 3-3zm0 9a2 2 0 110 4 2 2 0 010-4z" fill="white"/></svg>
+    <div class="login-logo" style="width:auto;height:auto;background:none;border-radius:0;margin:0 auto 1.1rem;display:flex;flex-direction:column;align-items:center;gap:10px">
+      <!-- ComplyTrack Logo 5: Progress Ring -->
+      <svg width="80" height="80" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Outer subtle ring -->
+        <circle cx="32" cy="32" r="28" stroke="rgba(26,77,110,0.12)" stroke-width="1.5"/>
+        <!-- Progress arc — 85% complete, green→cyan gradient -->
+        <circle cx="32" cy="32" r="28" stroke="url(#lg5arc)" stroke-width="4.5" stroke-linecap="round"
+                stroke-dasharray="148 175" stroke-dashoffset="44" fill="none"/>
+        <!-- Inner background circle -->
+        <circle cx="32" cy="32" r="20" fill="url(#lg5inner)"/>
+        <!-- Checkmark -->
+        <path d="M21 32l8 8L43 22" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Accent dot at arc end -->
+        <circle cx="54.5" cy="24" r="3.5" fill="#4ade80"/>
+        <defs>
+          <linearGradient id="lg5arc" x1="4" y1="4" x2="60" y2="60" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#4ade80"/>
+            <stop offset="1" stop-color="#22d3ee"/>
+          </linearGradient>
+          <linearGradient id="lg5inner" x1="12" y1="12" x2="52" y2="52" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#1e3a5f"/>
+            <stop offset="1" stop-color="#0f2440"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <!-- Wordmark -->
+      <div style="text-align:center">
+        <div style="font-size:22px;font-weight:700;letter-spacing:-0.03em;color:#1a2332;line-height:1">ComplyTrack</div>
+        <div style="font-size:10px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:#4a9fff;margin-top:4px">Compliance Management</div>
+      </div>
     </div>
-    <div class="login-title">SCC Backflow Register</div>
-    <div class="login-sub">Sign in to continue</div>
+    <div class="login-sub" style="margin-bottom:1.5rem">Sign in to continue</div>
     <div class="login-err" id="login-err">Incorrect username or password.</div>
     <div class="field"><label>Username</label><input type="text" id="login-user" placeholder="Enter username" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()"></div>
     <div class="field"><label>Password</label><input type="password" id="login-pass" placeholder="Enter password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
@@ -285,26 +399,75 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
 <div id="app">
 <nav>
   <div class="nav-brand">
-    <div class="nav-icon">
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M2 7h10M2 10h6" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
+    <div class="nav-icon" style="background:none;width:30px;height:30px;flex-shrink:0">
+      <svg width="30" height="30" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="32" cy="32" r="28" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+        <circle cx="32" cy="32" r="28" stroke="url(#nlg5)" stroke-width="5" stroke-linecap="round"
+                stroke-dasharray="148 175" stroke-dashoffset="44" fill="none"/>
+        <circle cx="32" cy="32" r="20" fill="rgba(255,255,255,0.1)"/>
+        <path d="M21 32l8 8L43 22" stroke="white" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="54.5" cy="24" r="3.5" fill="#4ade80"/>
+        <defs>
+          <linearGradient id="nlg5" x1="4" y1="4" x2="60" y2="60" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#4ade80"/>
+            <stop offset="1" stop-color="#22d3ee"/>
+          </linearGradient>
+        </defs>
+      </svg>
     </div>
-    SCC <span class="nav-full" id="nav-client-name">Backflow Device Register</span><span class="nav-short" style="display:none">Backflow</span>
+    <div style="display:flex;flex-direction:column;gap:0;line-height:1;min-width:0">
+      <span class="nav-full" id="nav-client-name" style="font-size:15px;font-weight:700;letter-spacing:-0.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">ComplyTrack</span>
+      <span class="nav-full" style="font-size:9px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;opacity:0.55">Compliance Management</span>
+    </div>
+    <span class="nav-short" style="display:none;font-weight:700;font-size:14px">ComplyTrack</span>
   </div>
   <div id="client-switcher" style="display:none;gap:6px;align-items:center;flex-shrink:0"></div>
-  <div class="nav-right">
+  <!-- Desktop nav buttons -->
+  <div class="nav-right" id="nav-right-desktop">
     <span id="nav-user-info" style="font-size:12px;opacity:.8;white-space:nowrap"></span>
     <button class="nbtn" id="nav-users-btn" onclick="openSettings('users')" style="display:none">&#9881; Settings</button>
     <button class="nbtn" onclick="openMapView()" style="display:flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="5.5" r="3" stroke="white" stroke-width="1.3"/><path d="M6.5 12C6.5 12 2 8.5 2 5.5a4.5 4.5 0 019 0C11 8.5 6.5 12 6.5 12z" stroke="white" stroke-width="1.3" fill="none"/></svg> Map</button>
-    <button class="nbtn" id="nav-reset-btn" onclick="resetToSeedData()" style="display:none;background:rgba(184,50,50,.25);border-color:rgba(255,255,255,.3)" title="Reset all device data to defaults">&#8635; Reset data</button>
+    <button class="nbtn" id="nav-reset-btn" onclick="resetToSeedData()" style="display:none;background:rgba(184,50,50,.25);border-color:rgba(255,255,255,.3)" title="Wipe all recorded test results and restore the original 570 imported devices">&#8635; Restore default devices</button>
     <button class="nbtn" id="nav-export-btn" onclick="exportCSV()">&#8595; Export CSV</button>
     <button class="nbtn nbtn-p" id="nav-add-btn" onclick="openAdd()">+ Add device</button>
     <button class="nbtn" onclick="doLogout()" style="background:rgba(255,255,255,0.08)">Sign out</button>
   </div>
+  <!-- Mobile: hamburger menu button -->
+  <button id="nav-hamburger" onclick="toggleMobileMenu()" style="display:none;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:7px 10px;cursor:pointer;color:#fff;flex-shrink:0" aria-label="Menu">
+    <svg width="18" height="14" viewBox="0 0 18 14" fill="none"><path d="M0 1h18M0 7h18M0 13h18" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+  </button>
 </nav>
+
+<!-- Mobile dropdown menu -->
+<div id="mobile-menu" style="display:none;position:fixed;top:52px;left:0;right:0;background:var(--accent);z-index:49;border-bottom:1px solid rgba(255,255,255,.15);box-shadow:0 8px 24px rgba(0,0,0,.3)">
+  <div style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.1);font-size:12px;opacity:.7" id="mob-menu-user"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(255,255,255,.1)">
+    <button id="mob-menu-add" onclick="openAdd();toggleMobileMenu()" style="font-family:var(--sans);background:#1a6636;border:none;color:#fff;padding:14px 12px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;justify-content:center">
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M7.5 2v11M2 7.5h11" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
+      Add Device
+    </button>
+    <button onclick="openMapView();toggleMobileMenu()" style="font-family:var(--sans);background:var(--accent);border:none;color:#fff;padding:14px 12px;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:8px;justify-content:center">
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="6" r="3" stroke="white" stroke-width="1.4"/><path d="M7.5 14C7.5 14 2 10 2 6a5.5 5.5 0 0111 0C13 10 7.5 14 7.5 14z" stroke="white" stroke-width="1.4" fill="none"/></svg>
+      Map View
+    </button>
+    <button id="mob-menu-settings" onclick="openSettings('users');toggleMobileMenu()" style="display:none;font-family:var(--sans);background:var(--accent);border:none;color:#fff;padding:14px 12px;font-size:13px;font-weight:500;cursor:pointer;align-items:center;gap:8px;justify-content:center">
+      &#9881; Settings
+    </button>
+    <button id="mob-menu-export" onclick="exportCSV();toggleMobileMenu()" style="font-family:var(--sans);background:var(--accent);border:none;color:#fff;padding:14px 12px;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:8px;justify-content:center">
+      &#8595; Export CSV
+    </button>
+    <button id="mob-menu-reset" onclick="resetToSeedData();toggleMobileMenu()" style="display:none;font-family:var(--sans);background:rgba(184,50,50,.3);border:none;color:#fff;padding:14px 12px;font-size:13px;font-weight:500;cursor:pointer;align-items:center;gap:8px;justify-content:center">
+      &#8635; Restore default devices
+    </button>
+    <button onclick="doLogout()" style="font-family:var(--sans);background:var(--accent);border:none;color:rgba(255,255,255,.7);padding:14px 12px;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:8px;justify-content:center">
+      Sign out
+    </button>
+  </div>
+</div>
 <main>
   <div class="page-hdr">
-    <h1>Backflow Prevention Devices</h1>
-    <p id="page-subtitle">Backflow Prevention Device Register</p>
+    <h1>Compliance Devices</h1>
+    <p id="page-subtitle">ComplyTrack</p>
   </div>
   <div id="alert-area"></div>
   <div class="metrics" id="metrics"></div>
@@ -366,7 +529,7 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
     <div id="empty" class="empty" style="display:none">No devices match your filters.</div>
   </div>
 </main>
-<footer>SCC Backflow Device Register &mdash; Data stored locally in your browser.</footer>
+<footer>ComplyTrack &mdash; Data stored locally in your browser.</footer>
 </div><!-- end #app -->
 <div class="mbg" id="modal" style="display:none" onclick="bgClose(event)">
   <div class="modal">
@@ -377,6 +540,7 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
       </div>
       <button class="mclose" onclick="closeModal()">&#x2715;</button>
     </div>
+    <div class="modal-body">
 
     <!-- Quick tested today button -->
     <div id="m-tested-bar" style="margin-bottom:1.25rem"></div>
@@ -469,6 +633,7 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
       <div class="field"><label>Notes</label><textarea id="f-notes" placeholder="Test observations, follow-up actions&#x2026;"></textarea></div>
     </div>
 
+    </div><!-- end modal-body -->
     <div class="mfooter">
       <button class="btn" onclick="closeModal()">Cancel</button>
       <button class="btn btn-p" onclick="saveTest()">Save changes</button>
@@ -483,38 +648,58 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
       <div class="mtitle">Add new device</div>
       <button class="mclose" onclick="closeAdd()">&#x2715;</button>
     </div>
+    <div class="modal-body">
     <div class="frow">
-      <div class="field"><label>Suburb name</label><input type="text" id="a-suburb" placeholder="e.g. NOWRA"></div>
-      <div class="field"><label>Make</label><input type="text" id="a-make" placeholder="e.g. Tyco"></div>
+      <div class="field">
+        <label>Suburb</label>
+        <select id="a-suburb" style="width:100%">
+          <option value="">— select or type below —</option>
+        </select>
+        <input type="text" id="a-suburb-new" placeholder="Or type new suburb name" style="margin-top:6px" oninput="this.value=this.value.toUpperCase()">
+        <div style="font-size:11px;color:var(--text3);margin-top:3px">Select existing or type a new one above</div>
+      </div>
+      <div class="field">
+        <label>Make</label>
+        <select id="a-make-sel" style="width:100%"><option value="">— select —</option></select>
+        <input type="text" id="a-make" placeholder="Or type new make" style="margin-top:6px">
+      </div>
     </div>
     <div class="frow">
-      <div class="field"><label>Model</label><input type="text" id="a-model" placeholder="e.g. RP03"></div>
-      <div class="field"><label>Size (mm)</label><input type="text" id="a-size" placeholder="e.g. 50"></div>
+      <div class="field">
+        <label>Model</label>
+        <select id="a-model-sel" style="width:100%"><option value="">— select —</option></select>
+        <input type="text" id="a-model" placeholder="Or type new model" style="margin-top:6px">
+      </div>
+      <div class="field">
+        <label>Size (mm)</label>
+        <select id="a-size-sel" style="width:100%"><option value="">— select —</option></select>
+        <input type="text" id="a-size" placeholder="Or type size" style="margin-top:6px">
+      </div>
     </div>
     <div class="frow">
       <div class="field"><label>Serial number</label><input type="text" id="a-serial" placeholder="e.g. 178230"></div>
       <div class="field"><label>Scheduled month</label>
         <select id="a-sched">
           <option value="">— select —</option>
-          <option>January</option>
-          <option>February</option>
-          <option>March</option>
-          <option>April</option>
-          <option>May</option>
-          <option>June</option>
-          <option>July</option>
-          <option>August</option>
-          <option>September</option>
-          <option>October</option>
-          <option>November</option>
-          <option>December</option>
+          <option>January</option><option>February</option><option>March</option>
+          <option>April</option><option>May</option><option>June</option>
+          <option>July</option><option>August</option><option>September</option>
+          <option>October</option><option>November</option><option>December</option>
         </select>
       </div>
     </div>
     <div class="field"><label>Location description</label><input type="text" id="a-loc" placeholder="Street address or site name"></div>
-    <div class="frow">
-      <div class="field"><label>Latitude</label><input type="text" id="a-lat" placeholder="e.g. -34.780"></div>
-      <div class="field"><label>Longitude</label><input type="text" id="a-lng" placeholder="e.g. 150.694"></div>
+    <!-- GPS section with Use My Location button -->
+    <div class="field">
+      <label>GPS coordinates</label>
+      <button type="button" id="a-gps-btn" onclick="useMyLocationAdd()" style="font-family:var(--sans);width:100%;padding:11px;border-radius:var(--r);font-size:14px;font-weight:600;cursor:pointer;border:1px solid rgba(26,77,110,.3);background:var(--accent-light);color:var(--accent);display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;transition:all .15s">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.5v2M8 12.5V14.5M1.5 8h2M12.5 8h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.2" opacity=".4"/></svg>
+        <span id="a-gps-label">Use my current location</span>
+      </button>
+      <div class="frow" style="margin-bottom:0">
+        <div class="field" style="margin-bottom:0"><label>Latitude</label><input type="text" id="a-lat" placeholder="e.g. -34.780"></div>
+        <div class="field" style="margin-bottom:0"><label>Longitude</label><input type="text" id="a-lng" placeholder="e.g. 150.694"></div>
+      </div>
     </div>
     <div class="frow">
       <div class="field"><label>Last tested</label><input type="date" id="a-date"></div>
@@ -523,6 +708,7 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
       </div>
     </div>
     <div class="field"><label>Notes</label><textarea id="a-notes" placeholder="Any notes&#x2026;"></textarea></div>
+    </div><!-- end modal-body -->
     <div class="mfooter">
       <button class="btn" onclick="closeAdd()">Cancel</button>
       <button class="btn btn-p" onclick="saveAdd()">Add device</button>
@@ -540,8 +726,10 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
       </div>
       <button class="mclose" onclick="closeWizard()">&#x2715;</button>
     </div>
-    <div id="wiz-body"></div>
-    <div style="display:flex;gap:8px;margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border2)">
+    <div class="modal-body">
+      <div id="wiz-body"></div>
+    </div>
+    <div class="mfooter" style="justify-content:stretch">
       <button class="btn" onclick="wizardSkip()" style="flex:1">Skip</button>
       <button class="btn btn-p" onclick="wizardNext()" id="wiz-next-btn" style="flex:2">Next</button>
     </div>
@@ -552,118 +740,142 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
 <div class="mbg" id="user-modal" style="display:none" onclick="bgUserClose(event)">
   <div class="modal" style="width:700px;max-width:98vw;padding:0;overflow:hidden">
 
-    <!-- Settings header -->
-    <div style="padding:1.25rem 1.5rem 0;border-bottom:1px solid var(--border2)">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+    <!-- Settings header — fixed at top -->
+    <div style="flex-shrink:0;padding:1rem 1.25rem 0;border-bottom:1px solid var(--border2)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
         <div class="mtitle">Settings</div>
         <button class="mclose" onclick="closeUserMgmt()">&#x2715;</button>
       </div>
-      <!-- Tabs -->
-      <div style="display:flex;gap:0" id="settings-tabs">
-        <button class="stab" id="stab-users" onclick="switchSettingsTab('users')" style="font-family:var(--sans);font-size:13px;font-weight:600;padding:8px 18px;border:none;background:none;cursor:pointer;border-bottom:2px solid var(--accent);color:var(--accent)">
+      <!-- Tabs — scrollable row on mobile -->
+      <div style="display:flex;gap:0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none" id="settings-tabs">
+        <button class="stab" id="stab-users" onclick="switchSettingsTab('users')" style="font-family:var(--sans);font-size:13px;font-weight:600;padding:8px 16px;border:none;background:none;cursor:pointer;border-bottom:2px solid var(--accent);color:var(--accent);white-space:nowrap;flex-shrink:0">
           👥 Users
         </button>
-        <button class="stab" id="stab-client" onclick="switchSettingsTab('client')" style="font-family:var(--sans);font-size:13px;font-weight:500;padding:8px 18px;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--text2)">
-          🏢 Client Info
-        </button>
-        <button class="stab" id="stab-clients" onclick="switchSettingsTab('clients')" style="font-family:var(--sans);font-size:13px;font-weight:500;padding:8px 18px;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--text2)">
+        <button class="stab" id="stab-clients" onclick="switchSettingsTab('clients')" style="font-family:var(--sans);font-size:13px;font-weight:500;padding:8px 16px;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--text2);white-space:nowrap;flex-shrink:0">
           🗂 Clients
+        </button>
+        <button class="stab" id="stab-backup" onclick="switchSettingsTab('backup')" style="font-family:var(--sans);font-size:13px;font-weight:500;padding:8px 16px;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--text2);white-space:nowrap;flex-shrink:0">
+          💾 Backup
         </button>
       </div>
     </div>
 
     <!-- Users tab -->
-    <div id="settings-pane-users" style="padding:1.25rem 1.5rem 1.5rem;max-height:75vh;overflow-y:auto">
-      <table class="utbl" id="user-table"></table>
-      <div style="border-top:1px solid var(--border2);margin-top:1.25rem;padding-top:1.25rem">
-        <div style="font-size:13px;font-weight:600;margin-bottom:12px">Add new user</div>
-        <div class="frow">
-          <div class="field"><label>Username</label><input type="text" id="nu-user" placeholder="username"></div>
-          <div class="field"><label>Password</label><input type="password" id="nu-pass" placeholder="password"></div>
-        </div>
-        <div class="frow">
-          <div class="field"><label>Full name</label><input type="text" id="nu-name" placeholder="e.g. Neil Smith"></div>
-          <div class="field"><label>Preset</label>
-            <select id="nu-preset" onchange="applyPreset()">
-              <option value="tester">Tester</option>
-              <option value="supervisor">Supervisor</option>
-              <option value="admin">Admin</option>
-              <option value="custom">Custom</option>
-            </select>
-          </div>
-        </div>
-        <div style="background:var(--surface2);border-radius:var(--r);border:1px solid var(--border2);padding:12px;margin-bottom:12px">
-          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:10px">Permissions</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" id="nu-perms">
-            <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer"><input type="checkbox" id="p-recordTests" style="accent-color:var(--accent)"> Record test results</label>
-            <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer"><input type="checkbox" id="p-editDevices" style="accent-color:var(--accent)"> Edit device details</label>
-            <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer"><input type="checkbox" id="p-addDevices" style="accent-color:var(--accent)"> Add / delete devices</label>
-            <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer"><input type="checkbox" id="p-viewHistory" style="accent-color:var(--accent)"> View test history</label>
-            <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer"><input type="checkbox" id="p-exportCSV" style="accent-color:var(--accent)"> Export CSV</label>
-            <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer"><input type="checkbox" id="p-manageUsers" style="accent-color:var(--accent)"> Manage users</label>
-          </div>
-        </div>
-        <button class="btn btn-p" onclick="addUser()" style="margin-top:4px">Add user</button>
-      </div>
+    <div id="settings-pane-users" style="overflow-y:auto;-webkit-overflow-scrolling:touch;padding:1.25rem 1.25rem 2rem;flex:1">
+      <div id="user-table"></div>
+      <button class="btn btn-p" onclick="openAddUserModal()" style="width:100%;margin-top:1rem;padding:12px;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
+        Add new user
+      </button>
     </div>
 
-    <!-- Client Info tab -->
-    <div id="settings-pane-client" style="display:none;padding:1.25rem 1.5rem 1.5rem;max-height:75vh;overflow-y:auto">
-      <p style="font-size:13px;color:var(--text2);margin-bottom:1.25rem">This information appears in email reports and on the dashboard. Fields are optional.</p>
+    <!-- Clients tab — includes client list + contact info -->
+    <div id="settings-pane-clients" style="display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:1.25rem 1.25rem 2rem;flex:1">
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem">
-        <div class="field" style="margin:0"><label>Organisation name</label><input type="text" id="ci-org" placeholder="e.g. Shoalhaven City Council"></div>
-        <div class="field" style="margin:0"><label>Department / team</label><input type="text" id="ci-dept" placeholder="e.g. Water Operations"></div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem">
-        <div class="field" style="margin:0"><label>Contact name</label><input type="text" id="ci-contact" placeholder="e.g. Neil Smith"></div>
-        <div class="field" style="margin:0"><label>Job title</label><input type="text" id="ci-title" placeholder="e.g. Water Services Officer"></div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem">
-        <div class="field" style="margin:0"><label>Phone</label><input type="text" id="ci-phone" placeholder="e.g. (02) 4429 3111"></div>
-        <div class="field" style="margin:0"><label>Mobile</label><input type="text" id="ci-mobile" placeholder="e.g. 0400 000 000"></div>
-      </div>
-      <div class="field"><label>Email address</label><input type="email" id="ci-email" placeholder="e.g. water@shoalhaven.nsw.gov.au"></div>
-      <div class="field"><label>CC email address <span style="font-weight:400;color:var(--text3)">(optional — copied on all reports)</span></label><input type="email" id="ci-cc" placeholder="e.g. compliance@shoalhaven.nsw.gov.au"></div>
-      <div class="field"><label>Report recipient email <span style="font-weight:400;color:var(--text3)">(who to send completion reports to)</span></label><input type="email" id="ci-recipient" placeholder="e.g. manager@shoalhaven.nsw.gov.au"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem">
-        <div class="field" style="margin:0"><label>Address</label><input type="text" id="ci-addr" placeholder="e.g. Bridge Rd, Nowra NSW 2541"></div>
-        <div class="field" style="margin:0"><label>Website</label><input type="text" id="ci-web" placeholder="e.g. shoalhaven.nsw.gov.au"></div>
-      </div>
-      <div class="field"><label>Email sign-off / footer note <span style="font-weight:400;color:var(--text3)">(appears at bottom of reports)</span></label>
-        <textarea id="ci-footer" placeholder="e.g. This report is generated from the SCC Backflow Prevention Device Register. Please retain for compliance purposes." style="height:70px;resize:vertical;font-family:var(--sans);width:100%;padding:8px 11px;font-size:13px;border:1px solid var(--border);border-radius:var(--r);background:var(--surface);color:var(--text)"></textarea>
-      </div>
-
-      <!-- Preview card -->
-      <div style="background:var(--accent-light);border:1px solid rgba(26,77,110,.15);border-radius:var(--r);padding:14px;margin-bottom:1.25rem" id="ci-preview-box">
-        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);margin-bottom:10px">Preview</div>
-        <div id="ci-preview" style="font-size:13px;color:var(--accent);line-height:1.7"></div>
-      </div>
-
-      <div style="display:flex;justify-content:flex-end;gap:8px">
-        <button class="btn" onclick="closeUserMgmt()">Cancel</button>
-        <button class="btn btn-p" onclick="saveClientInfo()">Save client info</button>
-      </div>
-    </div>
-
-    <!-- Clients tab -->
-    <div id="settings-pane-clients" style="display:none;padding:1.25rem 1.5rem 1.5rem;max-height:75vh;overflow-y:auto">
+      <!-- Client list -->
       <p style="font-size:13px;color:var(--text2);margin-bottom:1.25rem">Manage clients. Each client has its own device register. Switch between clients using the nav bar.</p>
-      <div id="clients-list" style="margin-bottom:1.5rem"></div>
-      <div style="border-top:1px solid var(--border2);padding-top:1.25rem">
-        <div style="font-size:13px;font-weight:600;margin-bottom:12px">Add new client</div>
-        <div class="frow">
-          <div class="field" style="margin:0"><label>Client name</label><input type="text" id="nc-name" placeholder="e.g. Wollongong City Council"></div>
-          <div class="field" style="margin:0"><label>Short name / abbreviation</label><input type="text" id="nc-abbr" placeholder="e.g. WCC" maxlength="8"></div>
-        </div>
-        <div class="frow" style="margin-top:10px">
-          <div class="field" style="margin:0"><label>Accent colour</label><input type="color" id="nc-colour" value="#1a4d6e" style="width:100%;height:38px;padding:2px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer"></div>
-          <div class="field" style="margin:0"><label>Notes</label><input type="text" id="nc-notes" placeholder="Optional notes about this client"></div>
-        </div>
-        <button class="btn btn-p" onclick="addClient()" style="margin-top:12px">Add client</button>
-      </div>
+      <div id="clients-list" style="margin-bottom:1rem"></div>
+      <button class="btn btn-p" onclick="openAddClientModal()" style="width:100%;padding:12px;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
+        Add new client
+      </button>
+
     </div>
 
+    <!-- Backup tab -->
+    <div id="settings-pane-backup" style="display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:1.25rem 1.25rem 2rem;flex:1">
+
+      <div style="margin-bottom:1.75rem">
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px">📤 Backup data</div>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:1rem;line-height:1.5">Downloads a complete snapshot of all devices, test records, users, clients and settings as a JSON file.</p>
+        <button class="btn btn-p" onclick="backupData()" style="width:100%;padding:13px;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1v9M5 7l3 3 3-3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12v1a1 1 0 001 1h10a1 1 0 001-1v-1" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+          Download backup
+        </button>
+      </div>
+
+      <div style="border-top:2px solid var(--border2);padding-top:1.5rem">
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px">📥 Restore from backup</div>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:1rem;line-height:1.5">Select a previously downloaded backup file. <strong style="color:var(--red)">This will overwrite all current data.</strong></p>
+        <label style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;border-radius:var(--r);border:2px dashed var(--border);background:var(--surface2);cursor:pointer;font-size:14px;font-weight:500;color:var(--text2);box-sizing:border-box">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 11V2M5 5l3-3 3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12v1a1 1 0 001 1h10a1 1 0 001-1v-1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <span id="restore-file-label">Choose backup file…</span>
+          <input type="file" id="restore-file-input" accept=".json" style="display:none" onchange="restoreFileSelected(this)">
+        </label>
+        <div id="restore-preview" style="display:none;margin-top:1rem;padding:12px;background:var(--surface2);border-radius:var(--r);border:1px solid var(--border2);font-size:13px;line-height:1.8;color:var(--text)"></div>
+        <button id="restore-confirm-btn" onclick="restoreData()" style="display:none;width:100%;margin-top:1rem;padding:13px;font-size:14px;font-family:var(--sans);font-weight:600;border:none;border-radius:var(--r);background:#b83232;color:#fff;cursor:pointer;display:none">
+          ⚠️ Restore — overwrites all current data
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- Add Client Modal -->
+<div class="mbg" id="add-client-modal" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal" style="max-width:460px">
+    <div class="mhdr">
+      <div class="mtitle">Add new client</div>
+      <button class="mclose" onclick="document.getElementById('add-client-modal').style.display='none'">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="frow">
+        <div class="field"><label>Client name</label><input type="text" id="nc-name" placeholder="e.g. Wollongong City Council"></div>
+        <div class="field"><label>Abbreviation</label><input type="text" id="nc-abbr" placeholder="e.g. WCC" maxlength="8"></div>
+      </div>
+      <div class="frow">
+        <div class="field"><label>Accent colour</label><input type="color" id="nc-colour" value="#1a4d6e" style="width:100%;height:40px;padding:2px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer"></div>
+        <div class="field"><label>Notes</label><input type="text" id="nc-notes" placeholder="Optional notes"></div>
+      </div>
+    </div>
+    <div class="mfooter">
+      <button class="btn" onclick="document.getElementById('add-client-modal').style.display='none'">Cancel</button>
+      <button class="btn btn-p" onclick="addClient()">Add client</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="mbg" id="add-user-modal" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal" style="max-width:480px">
+    <div class="mhdr">
+      <div class="mtitle">Add new user</div>
+      <button class="mclose" onclick="document.getElementById('add-user-modal').style.display='none'">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="frow">
+        <div class="field"><label>Username</label><input type="text" id="nu-user" placeholder="username" autocomplete="off"></div>
+        <div class="field"><label>Password</label><input type="password" id="nu-pass" placeholder="password" autocomplete="new-password"></div>
+      </div>
+      <div class="frow">
+        <div class="field"><label>Full name</label><input type="text" id="nu-name" placeholder="e.g. Neil Smith"></div>
+        <div class="field"><label>Preset</label>
+          <select id="nu-preset" onchange="applyPreset()">
+            <option value="tester">Tester</option>
+            <option value="supervisor">Supervisor</option>
+            <option value="admin">Admin</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+      </div>
+      <div style="background:var(--surface2);border-radius:var(--r);border:1px solid var(--border2);padding:12px">
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:10px">Permissions</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" id="nu-perms">
+          <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer"><input type="checkbox" id="p-recordTests" style="accent-color:var(--accent)"> Record test results</label>
+          <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer"><input type="checkbox" id="p-editDevices" style="accent-color:var(--accent)"> Edit device details</label>
+          <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer"><input type="checkbox" id="p-addDevices" style="accent-color:var(--accent)"> Add / delete devices</label>
+          <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer"><input type="checkbox" id="p-viewHistory" style="accent-color:var(--accent)"> View test history</label>
+          <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer"><input type="checkbox" id="p-exportCSV" style="accent-color:var(--accent)"> Export CSV</label>
+          <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer"><input type="checkbox" id="p-manageUsers" style="accent-color:var(--accent)"> Manage users</label>
+        </div>
+      </div>
+    </div>
+    <div class="mfooter">
+      <button class="btn" onclick="document.getElementById('add-user-modal').style.display='none'">Cancel</button>
+      <button class="btn btn-p" onclick="addUser()">Add user</button>
+    </div>
   </div>
 </div>
 
@@ -748,15 +960,27 @@ function load(){
 }
 
 function resetToSeedData(){
+  if(!can('manageUsers')){showToast('Admin access required.');return;}
   const client=getActiveClient();
-  if(!confirm(`Reset ALL device data for ${client.name} to defaults?\n\nThis cannot be undone.`))return;
+  // Step 1: password prompt
+  const pwd=prompt('Enter your password to continue:');
+  if(pwd===null)return; // cancelled
+  const users=getUsers();
+  const me=users.find(u=>u.username===currentUser.username);
+  const pwdMatch=me&&(hashPass(pwd)===me.password||pwd===me.password);
+  if(!pwdMatch){
+    showToast('Incorrect password.');
+    return;
+  }
+  // Step 2: final confirmation
+  if(!confirm(`⚠️ Are you sure?\n\nThis will permanently wipe all recorded test results for "${client.name}" and restore the original device list.\n\nThis cannot be undone.`))return;
   if(client.builtIn){
     devices=SEED_DATA.map(d=>({...d,clientId:SCC_CLIENT_ID}));
   } else {
     devices=[];
   }
   save();populateSuburbFilter();render();
-  showToast('Data reset.');
+  showToast('Devices restored to defaults.');
 }
 
 function save(){
@@ -1090,7 +1314,7 @@ function openDevice(id){
   document.getElementById('f-result2').value=d.testResult||'Pending';
   document.getElementById('f-notes').value=d.notes||'';
   document.getElementById('modal').style.display='flex';
-  // Launch wizard if there are missing fields
+  document.body.classList.add('modal-open');
   const missing=getMissingFields(d);
   if(missing.length>0){
     setTimeout(()=>startWizard(d.id,missing),300);
@@ -1264,7 +1488,10 @@ function closeWizard(){document.getElementById('wizard-modal').style.display='no
 function bgWizardClose(e){if(e.target===document.getElementById('wizard-modal'))closeWizard();}
 // ────────────────────────────────────────────────────────
 
-function closeModal(){document.getElementById('modal').style.display='none';}
+function closeModal(){
+  document.getElementById('modal').style.display='none';
+  document.body.classList.remove('modal-open');
+}
 function bgClose(e){if(e.target===document.getElementById('modal'))closeModal();}
 
 function useMyLocation(){
@@ -1294,21 +1521,105 @@ function useMyLocation(){
     {enableHighAccuracy:true,timeout:10000}
   );
 }
-function openAdd(){document.getElementById('add-modal').style.display='flex';}
-function closeAdd(){document.getElementById('add-modal').style.display='none';}
+function openAdd(){
+  // Populate suburb dropdown from existing devices
+  const subSel=document.getElementById('a-suburb');
+  const suburbs=[...new Set(devices.map(d=>d.suburb).filter(Boolean))].sort();
+  subSel.innerHTML='<option value="">— select existing suburb —</option>'
+    +suburbs.map(s=>`<option value="${s}">${s}</option>`).join('');
+
+  // Populate make dropdown
+  const makeSel=document.getElementById('a-make-sel');
+  const makes=[...new Set(devices.map(d=>d.make).filter(Boolean))].sort();
+  makeSel.innerHTML='<option value="">— select —</option>'
+    +makes.map(m=>`<option value="${m}">${m}</option>`).join('');
+
+  // Populate model dropdown — updates when make changes
+  const modelSel=document.getElementById('a-model-sel');
+  const models=[...new Set(devices.map(d=>d.model).filter(Boolean))].sort();
+  modelSel.innerHTML='<option value="">— select —</option>'
+    +models.map(m=>`<option value="${m}">${m}</option>`).join('');
+
+  // Populate size dropdown
+  const sizeSel=document.getElementById('a-size-sel');
+  const sizes=[...new Set(devices.map(d=>d.size).filter(Boolean))].sort((a,b)=>parseFloat(a)-parseFloat(b));
+  sizeSel.innerHTML='<option value="">— select —</option>'
+    +sizes.map(s=>`<option value="${s}">${s} mm</option>`).join('');
+
+  // When make changes, filter model list to matching models for that make
+  makeSel.onchange=()=>{
+    const chosenMake=makeSel.value||document.getElementById('a-make').value.trim();
+    if(chosenMake){
+      const filtered=[...new Set(devices.filter(d=>d.make===chosenMake).map(d=>d.model).filter(Boolean))].sort();
+      if(filtered.length){
+        modelSel.innerHTML='<option value="">— select —</option>'
+          +filtered.map(m=>`<option value="${m}">${m}</option>`).join('');
+        return;
+      }
+    }
+    // Reset to all models
+    modelSel.innerHTML='<option value="">— select —</option>'
+      +models.map(m=>`<option value="${m}">${m}</option>`).join('');
+  };
+
+  // Reset free-text inputs and GPS
+  ['a-suburb-new','a-make','a-model','a-size'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('a-lat').value='';
+  document.getElementById('a-lng').value='';
+  const gpsBtn=document.getElementById('a-gps-btn');
+  const gpsLabel=document.getElementById('a-gps-label');
+  if(gpsBtn){gpsBtn.style.background='';gpsBtn.style.borderColor='';gpsBtn.style.color='';}
+  if(gpsLabel) gpsLabel.textContent='Use my current location';
+  document.getElementById('add-modal').style.display='flex';
+  document.body.classList.add('modal-open');
+}
+function closeAdd(){document.getElementById('add-modal').style.display='none';document.body.classList.remove('modal-open');}
 function bgAddClose(e){if(e.target===document.getElementById('add-modal'))closeAdd();}
 
+function useMyLocationAdd(){
+  if(!navigator.geolocation){showToast('Geolocation not supported.');return;}
+  const btn=document.getElementById('a-gps-btn');
+  const label=document.getElementById('a-gps-label');
+  label.textContent='Getting location…';
+  btn.style.opacity='0.7';
+  navigator.geolocation.getCurrentPosition(
+    pos=>{
+      const lat=pos.coords.latitude.toFixed(6);
+      const lng=pos.coords.longitude.toFixed(6);
+      document.getElementById('a-lat').value=lat;
+      document.getElementById('a-lng').value=lng;
+      label.textContent='✓ Location set ('+lat+', '+lng+')';
+      btn.style.background='var(--green-bg)';
+      btn.style.borderColor='rgba(26,102,54,.3)';
+      btn.style.color='var(--green)';
+      btn.style.opacity='1';
+    },
+    err=>{
+      label.textContent='Use my current location';
+      btn.style.opacity='1';
+      const msgs={1:'Location access denied.',2:'Location unavailable.',3:'Location timed out.'};
+      showToast(msgs[err.code]||'Could not get location.');
+    },
+    {enableHighAccuracy:true,timeout:10000}
+  );
+}
+
 function saveAdd(){
-  const suburb=document.getElementById('a-suburb').value.trim().toUpperCase();
-  const make=document.getElementById('a-make').value.trim();
+  // Each field: prefer dropdown selection, fall back to typed value
+  const selVal=document.getElementById('a-suburb').value.trim().toUpperCase();
+  const newVal=document.getElementById('a-suburb-new').value.trim().toUpperCase();
+  const suburb=selVal||newVal;
+  const make=document.getElementById('a-make-sel').value.trim()||document.getElementById('a-make').value.trim();
+  const model=document.getElementById('a-model-sel').value.trim()||document.getElementById('a-model').value.trim();
+  const size=document.getElementById('a-size-sel').value.trim()||document.getElementById('a-size').value.trim();
   if(!suburb||!make){showToast('Suburb and make are required.');return;}
   const maxId=devices.reduce((m,d)=>Math.max(m,d.id),0);
   const lat=parseFloat(document.getElementById('a-lat').value);
   const lng=parseFloat(document.getElementById('a-lng').value);
   devices.push({
     id:maxId+1,suburb,make,clientId:getActiveClientId(),
-    model:document.getElementById('a-model').value.trim(),
-    size:document.getElementById('a-size').value.trim(),
+    model,
+    size,
     serial:document.getElementById('a-serial').value.trim(),
     location:document.getElementById('a-loc').value.trim(),
     lat:isNaN(lat)?null:lat,
@@ -1320,7 +1631,12 @@ function saveAdd(){
   });
   save();closeAdd();populateSuburbFilter();populateYearFilter();render();
   showToast('Device added.');
-  ['a-suburb','a-make','a-model','a-size','a-serial','a-loc','a-lat','a-lng','a-date','a-notes'].forEach(id=>document.getElementById(id).value='');
+  ['a-suburb','a-make-sel','a-model-sel','a-size-sel','a-make','a-model','a-size','a-serial','a-loc','a-lat','a-lng','a-date','a-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('a-suburb-new').value='';
+  const gpsBtn=document.getElementById('a-gps-btn');
+  const gpsLabel=document.getElementById('a-gps-label');
+  if(gpsBtn){gpsBtn.style.background='';gpsBtn.style.borderColor='';gpsBtn.style.color='';gpsBtn.style.opacity='1';}
+  if(gpsLabel) gpsLabel.textContent='Use my current location';
   document.getElementById('a-result').value='Pending';
   document.getElementById('a-sched').value='';
 }
@@ -1352,7 +1668,7 @@ function emailSuburbReport(suburb, evt){
   const senderTitle=ci.title?'\n'+ci.title:'';
   const phoneLines=[ci.phone?'Phone: '+ci.phone:'',ci.mobile?'Mobile: '+ci.mobile:''].filter(Boolean).join(' | ');
   const emailLine=ci.email?'Email: '+ci.email:'';
-  const footerNote=ci.footer||'This report was generated from the SCC Backflow Prevention Device Register.\nPlease retain this record for compliance purposes.';
+  const footerNote=ci.footer||'This report was generated from the ComplyTrack.\nPlease retain this record for compliance purposes.';
 
   const subject=`Backflow Testing Complete — ${suburb} — ${year}`;
   const body=`Hi,
@@ -1542,7 +1858,7 @@ function exportCSV(){
   const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\r\n');
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
-  a.download='SCC_Backflow_Register.csv';a.click();
+  a.download='ComplyTrack_Register.csv';a.click();
   showToast('CSV exported.');
 }
 
@@ -1579,7 +1895,20 @@ const PRESETS={
 };
 const PERM_KEYS=['recordTests','editDevices','addDevices','viewHistory','exportCSV','manageUsers'];
 
-function can(perm){return !!(currentUser&&currentUser.permissions&&currentUser.permissions[perm]);}
+function can(perm){
+  if(!currentUser) return false;
+  // New format: permissions object
+  if(currentUser.permissions) return !!currentUser.permissions[perm];
+  // Legacy format: role string
+  if(currentUser.role==='admin') return true;
+  if(currentUser.role==='supervisor') return ['recordTests','editDevices','viewHistory','exportCSV'].includes(perm);
+  return perm==='recordTests'; // tester
+}
+function isAdmin(){
+  if(!currentUser) return false;
+  if(currentUser.permissions) return !!currentUser.permissions.manageUsers;
+  return currentUser.role==='admin';
+}
 
 function applyPreset(){
   const preset=document.getElementById('nu-preset').value;
@@ -1614,20 +1943,16 @@ function permSummary(p){
 function resetAdminAccount(e){
   if(e)e.preventDefault();
   const adminPerms={recordTests:true,editDevices:true,addDevices:true,viewHistory:true,exportCSV:true,manageUsers:true};
-  try{
-    const stored=localStorage.getItem('scc_users_v1');
-    const users=stored?JSON.parse(stored).filter(u=>u.username!=='admin'):[];
-    users.unshift({username:'admin',password:hashPass('admin123'),name:'Administrator',permissions:adminPerms});
-    localStorage.setItem('scc_users_v1',JSON.stringify(users));
-  }catch(ex){
-    localStorage.setItem('scc_users_v1',JSON.stringify([{username:'admin',password:hashPass('admin123'),name:'Administrator',permissions:adminPerms}]));
-  }
+  // Wipe ALL users and recreate only admin
+  localStorage.setItem('scc_users_v1',JSON.stringify([
+    {username:'admin',password:hashPass('admin123'),name:'Administrator',permissions:adminPerms}
+  ]));
   const err=document.getElementById('login-err');
   err.style.display='block';
   err.style.background='#eaf4ee';
   err.style.color='#1a6636';
   err.style.border='1px solid rgba(26,102,54,.2)';
-  err.textContent='✓ Admin reset! Log in with: admin / admin123';
+  err.textContent='✓ All accounts reset. Log in: admin / admin123';
   document.getElementById('login-user').value='admin';
   document.getElementById('login-pass').value='';
   document.getElementById('login-pass').focus();
@@ -1700,15 +2025,59 @@ function mobileNavScroll(target){
   else if(target==='devices') document.querySelector('.tcard').scrollIntoView({behavior:'smooth'});
 }
 
+function toggleMobileMenu(){
+  const menu=document.getElementById('mobile-menu');
+  if(!menu) return;
+  const isOpen=menu.style.display!=='none';
+  menu.style.display=isOpen?'none':'block';
+  // Update user info in menu
+  if(!isOpen&&currentUser){
+    const u=document.getElementById('mob-menu-user');
+    if(u) u.textContent=currentUser.name+' — '+currentUser.username;
+  }
+}
+
+// Close mobile menu when tapping outside
+document.addEventListener('click',function(e){
+  const menu=document.getElementById('mobile-menu');
+  const btn=document.getElementById('nav-hamburger');
+  if(menu&&menu.style.display!=='none'&&!menu.contains(e.target)&&e.target!==btn&&!btn.contains(e.target)){
+    menu.style.display='none';
+  }
+});
+
 function showApp(){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('nav-user-info').textContent=currentUser.name+' ·';
+  // Ensure currentUser has permissions (migrate legacy role-based users)
+  if(!currentUser.permissions){
+    if(currentUser.role==='admin'||currentUser.username==='admin'){
+      currentUser.permissions={recordTests:true,editDevices:true,addDevices:true,viewHistory:true,exportCSV:true,manageUsers:true};
+      // Save migrated permissions back to storage
+      const users=getUsers();
+      const idx=users.findIndex(u=>u.username===currentUser.username);
+      if(idx>=0){users[idx].permissions=currentUser.permissions;saveUsers(users);}
+    } else {
+      currentUser.permissions=Object.assign({},PRESETS.tester);
+    }
+  }
+  // Desktop nav
   document.getElementById('nav-users-btn').style.display=can('manageUsers')?'':'none';
   document.getElementById('nav-reset-btn').style.display=can('manageUsers')?'':'none';
   document.getElementById('nav-add-btn').style.display=can('addDevices')?'':'none';
   const expBtn=document.getElementById('nav-export-btn');
   if(expBtn)expBtn.style.display=can('exportCSV')?'':'none';
+  // Mobile menu permissions
+  const mSettings=document.getElementById('mob-menu-settings');
+  if(mSettings)mSettings.style.display=can('manageUsers')?'flex':'none';
+  const mReset=document.getElementById('mob-menu-reset');
+  if(mReset)mReset.style.display=can('manageUsers')?'flex':'none';
+  const mExport=document.getElementById('mob-menu-export');
+  if(mExport)mExport.style.display=can('exportCSV')?'flex':'none';
+  const mAdd=document.getElementById('mob-menu-add');
+  if(mAdd)mAdd.style.display=can('addDevices')?'flex':'none';
+  // Mobile add button
   const mobAdd=document.getElementById('mob-add-btn');
   if(mobAdd)mobAdd.style.opacity=can('addDevices')?'1':'0.3';
   renderClientSwitcher();
@@ -1716,66 +2085,34 @@ function showApp(){
 }
 
 // ── Settings Modal ───────────────────────────────────────
-const CLIENT_KEY='scc_client_v1';
+const CLIENT_KEY='scc_client_v1'; // kept for migration only
 
 function getClientInfo(){
-  try{return JSON.parse(localStorage.getItem(CLIENT_KEY))||{};}catch(e){return{};}
+  // Read contact info from the active client object
+  const client=getActiveClient();
+  if(client&&client.contactInfo) return client.contactInfo;
+  // Fallback: migrate old global storage if present
+  try{
+    const old=JSON.parse(localStorage.getItem(CLIENT_KEY)||'null');
+    if(old&&Object.keys(old).length){
+      // Migrate into the active client
+      const clients=getClients();
+      const idx=clients.findIndex(c=>c.id===getActiveClientId());
+      if(idx>=0){clients[idx].contactInfo=old;saveClients(clients);}
+      localStorage.removeItem(CLIENT_KEY);
+      return old;
+    }
+  }catch(e){}
+  return {};
 }
+
 function saveClientInfo(){
-  const ci={
-    org:    document.getElementById('ci-org').value.trim(),
-    dept:   document.getElementById('ci-dept').value.trim(),
-    contact:document.getElementById('ci-contact').value.trim(),
-    title:  document.getElementById('ci-title').value.trim(),
-    phone:  document.getElementById('ci-phone').value.trim(),
-    mobile: document.getElementById('ci-mobile').value.trim(),
-    email:  document.getElementById('ci-email').value.trim(),
-    cc:     document.getElementById('ci-cc').value.trim(),
-    recipient:document.getElementById('ci-recipient').value.trim(),
-    addr:   document.getElementById('ci-addr').value.trim(),
-    web:    document.getElementById('ci-web').value.trim(),
-    footer: document.getElementById('ci-footer').value.trim(),
-  };
-  localStorage.setItem(CLIENT_KEY, JSON.stringify(ci));
-  updatePageHeader();
-  showToast('Client info saved.');
-  renderClientPreview();
+  // Legacy stub — no longer used directly (saveEditClient handles it now)
+  showToast('Use the Edit button on a client to update contact info.');
 }
 
 function loadClientInfoFields(){
-  const ci=getClientInfo();
-  document.getElementById('ci-org').value=    ci.org||'';
-  document.getElementById('ci-dept').value=   ci.dept||'';
-  document.getElementById('ci-contact').value=ci.contact||'';
-  document.getElementById('ci-title').value=  ci.title||'';
-  document.getElementById('ci-phone').value=  ci.phone||'';
-  document.getElementById('ci-mobile').value= ci.mobile||'';
-  document.getElementById('ci-email').value=  ci.email||'';
-  document.getElementById('ci-cc').value=     ci.cc||'';
-  document.getElementById('ci-recipient').value=ci.recipient||'';
-  document.getElementById('ci-addr').value=   ci.addr||'';
-  document.getElementById('ci-web').value=    ci.web||'';
-  document.getElementById('ci-footer').value= ci.footer||'';
-  renderClientPreview();
-  // Live preview on input
-  ['ci-org','ci-dept','ci-contact','ci-title','ci-phone','ci-mobile','ci-email','ci-cc','ci-recipient','ci-addr','ci-web','ci-footer'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el) el.oninput=renderClientPreview;
-  });
-}
-
-function renderClientPreview(){
-  const f=id=>document.getElementById(id).value.trim();
-  const lines=[];
-  if(f('ci-org'))  lines.push(`<strong>${f('ci-org')}</strong>${f('ci-dept')?' &mdash; '+f('ci-dept'):''}`);
-  if(f('ci-contact')) lines.push(f('ci-contact')+(f('ci-title')?' &mdash; '+f('ci-title'):''));
-  if(f('ci-phone'))   lines.push('📞 '+f('ci-phone')+(f('ci-mobile')?' &nbsp;|&nbsp; 📱 '+f('ci-mobile'):''));
-  if(f('ci-email'))   lines.push('✉️ '+f('ci-email'));
-  if(f('ci-recipient')) lines.push('📤 Reports to: '+f('ci-recipient'));
-  if(f('ci-addr'))    lines.push('📍 '+f('ci-addr'));
-  if(f('ci-web'))     lines.push('🌐 '+f('ci-web'));
-  const preview=document.getElementById('ci-preview');
-  if(preview) preview.innerHTML=lines.length?lines.join('<br>'):'<span style="color:var(--text3);font-style:italic">Fill in fields above to see preview</span>';
+  // No-op — fields now live in the edit popup, not the settings pane
 }
 
 function updatePageHeader(){
@@ -1793,18 +2130,225 @@ function renderClientsList(){
   if(!el)return;
   if(!clients.length){el.innerHTML='<p style="color:var(--text3);font-size:13px">No clients yet.</p>';return;}
   el.innerHTML=clients.map((c,i)=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--r);margin-bottom:8px;background:${c.id===activeId?'var(--accent-light)':'var(--surface)'}">
+    <div onclick="openEditClient('${c.id}')" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--r);margin-bottom:8px;background:${c.id===activeId?'var(--accent-light)':'var(--surface)'};cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,.1)'" onmouseout="this.style.boxShadow=''">
       <div style="width:18px;height:18px;border-radius:50%;background:${c.colour||'#1a4d6e'};flex-shrink:0;border:2px solid rgba(0,0,0,.1)"></div>
       <div style="flex:1;min-width:0">
         <div style="font-weight:600;font-size:13px">${c.name} <span style="font-size:11px;font-weight:400;color:var(--text3)">${c.abbr||''}</span></div>
         ${c.notes?`<div style="font-size:11px;color:var(--text3)">${c.notes}</div>`:''}
         ${c.id===activeId?'<div style="font-size:11px;color:var(--accent);font-weight:600">● Active</div>':''}
       </div>
-      <div style="display:flex;gap:6px;flex-shrink:0">
+      <div style="display:flex;gap:6px;flex-shrink:0" onclick="event.stopPropagation()">
         ${c.id!==activeId?`<button class="btn" style="font-size:11px;padding:4px 10px" onclick="switchClient('${c.id}');closeUserMgmt()">Switch</button>`:''}
+        <button class="btn" style="font-size:11px;padding:4px 10px" onclick="openEditClient('${c.id}')">✏ Edit</button>
         ${!c.builtIn?`<button class="btn" style="font-size:11px;padding:4px 10px;color:var(--red)" onclick="deleteClient('${c.id}')">Delete</button>`:'<span style="font-size:11px;color:var(--text3);padding:4px 6px">Built-in</span>'}
       </div>
     </div>`).join('');
+}
+
+function openEditClient(id){
+  const clients=getClients();
+  const c=clients.find(x=>x.id===id);
+  if(!c)return;
+  const ci=c.contactInfo||{};
+
+  let modal=document.getElementById('edit-client-modal');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='edit-client-modal';
+    modal.className='mbg';
+    modal.onclick=e=>{if(e.target===modal)modal.style.display='none';};
+    document.body.appendChild(modal);
+  }
+
+  const esc=s=>(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+
+  modal.innerHTML=`
+    <div class="modal" style="max-width:520px">
+      <div class="mhdr">
+        <div>
+          <div class="mtitle">Edit Client</div>
+          <div class="msub-info">${esc(c.name)}</div>
+        </div>
+        <button class="mclose" onclick="document.getElementById('edit-client-modal').style.display='none'">&#x2715;</button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Identity -->
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:10px">Client Identity</div>
+        <div class="frow">
+          <div class="field"><label>Client name</label><input type="text" id="ec-name" value="${esc(c.name)}"></div>
+          <div class="field"><label>Abbreviation</label><input type="text" id="ec-abbr" value="${esc(c.abbr||'')}" maxlength="8"></div>
+        </div>
+        <div class="frow">
+          <div class="field"><label>Accent colour</label><input type="color" id="ec-colour" value="${c.colour||'#1a4d6e'}" style="width:100%;height:40px;padding:2px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer"></div>
+          <div class="field"><label>Notes</label><input type="text" id="ec-notes" value="${esc(c.notes||'')}" placeholder="Optional notes"></div>
+        </div>
+
+        <!-- Contact Info -->
+        <div style="border-top:1px solid var(--border2);margin:1.25rem 0 1rem"></div>
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:10px">Contact Information</div>
+        <div class="frow">
+          <div class="field"><label>Organisation name</label><input type="text" id="ec-org" value="${esc(ci.org||'')}" placeholder="e.g. Shoalhaven City Council"></div>
+          <div class="field"><label>Department / team</label><input type="text" id="ec-dept" value="${esc(ci.dept||'')}" placeholder="e.g. Water Operations"></div>
+        </div>
+        <div class="frow">
+          <div class="field"><label>Contact name</label><input type="text" id="ec-contact" value="${esc(ci.contact||'')}" placeholder="e.g. Neil Smith"></div>
+          <div class="field"><label>Job title</label><input type="text" id="ec-ctitle" value="${esc(ci.title||'')}" placeholder="e.g. Water Services Officer"></div>
+        </div>
+        <div class="frow">
+          <div class="field"><label>Phone</label><input type="text" id="ec-phone" value="${esc(ci.phone||'')}" placeholder="e.g. (02) 4429 3111"></div>
+          <div class="field"><label>Mobile</label><input type="text" id="ec-mobile" value="${esc(ci.mobile||'')}" placeholder="e.g. 0400 000 000"></div>
+        </div>
+        <div class="field"><label>Email address</label><input type="email" id="ec-email" value="${esc(ci.email||'')}" placeholder="e.g. water@council.nsw.gov.au"></div>
+        <div class="field"><label>CC email <span style="font-weight:400;color:var(--text3)">(copied on all reports)</span></label><input type="email" id="ec-cc" value="${esc(ci.cc||'')}" placeholder="e.g. compliance@council.nsw.gov.au"></div>
+        <div class="field"><label>Report recipient email</label><input type="email" id="ec-recipient" value="${esc(ci.recipient||'')}" placeholder="e.g. manager@council.nsw.gov.au"></div>
+        <div class="frow">
+          <div class="field"><label>Address</label><input type="text" id="ec-addr" value="${esc(ci.addr||'')}" placeholder="e.g. Bridge Rd, Nowra NSW 2541"></div>
+          <div class="field"><label>Website</label><input type="text" id="ec-web" value="${esc(ci.web||'')}" placeholder="e.g. shoalhaven.nsw.gov.au"></div>
+        </div>
+        <div class="field"><label>Email footer note</label>
+          <textarea id="ec-footer" style="height:65px;resize:vertical;font-family:var(--sans);width:100%;padding:8px 11px;font-size:13px;border:1px solid var(--border);border-radius:var(--r);background:var(--surface);color:var(--text)" placeholder="e.g. This report is generated from ComplyTrack.">${esc(ci.footer||'')}</textarea>
+        </div>
+
+      </div>
+      <div class="mfooter">
+        <button class="btn" onclick="document.getElementById('edit-client-modal').style.display='none'">Cancel</button>
+        <button class="btn btn-p" onclick="saveEditClient('${id}')">Save changes</button>
+      </div>
+    </div>`;
+  modal.style.display='flex';
+}
+
+function saveEditClient(id){
+  const name=document.getElementById('ec-name').value.trim();
+  const abbr=document.getElementById('ec-abbr').value.trim();
+  const colour=document.getElementById('ec-colour').value;
+  const notes=document.getElementById('ec-notes').value.trim();
+  if(!name){showToast('Client name is required.');return;}
+  const contactInfo={
+    org:       document.getElementById('ec-org').value.trim(),
+    dept:      document.getElementById('ec-dept').value.trim(),
+    contact:   document.getElementById('ec-contact').value.trim(),
+    title:     document.getElementById('ec-ctitle').value.trim(),
+    phone:     document.getElementById('ec-phone').value.trim(),
+    mobile:    document.getElementById('ec-mobile').value.trim(),
+    email:     document.getElementById('ec-email').value.trim(),
+    cc:        document.getElementById('ec-cc').value.trim(),
+    recipient: document.getElementById('ec-recipient').value.trim(),
+    addr:      document.getElementById('ec-addr').value.trim(),
+    web:       document.getElementById('ec-web').value.trim(),
+    footer:    document.getElementById('ec-footer').value.trim(),
+  };
+  const clients=getClients();
+  const idx=clients.findIndex(x=>x.id===id);
+  if(idx===-1)return;
+  clients[idx]={...clients[idx],name,abbr,colour,notes,contactInfo};
+  saveClients(clients);
+  document.getElementById('edit-client-modal').style.display='none';
+  renderClientsList();
+  renderClientSwitcher();
+  updateClientUI();
+  showToast(`"${name}" updated.`);
+}
+
+// ── Backup & Restore ────────────────────────────────────
+let restoreParsed=null;
+
+function backupData(){
+  const backup={
+    version:2,
+    timestamp:new Date().toISOString(),
+    appName:'ComplyTrack',
+    clients:getClients(),
+    activeClientId:getActiveClientId(),
+    users:getUsers(),
+    devices:{},
+  };
+  // Save devices for every client
+  const clients=getClients();
+  clients.forEach(c=>{
+    const key=deviceKeyForClient(c.id);
+    try{backup.devices[c.id]=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){backup.devices[c.id]=[];}
+  });
+  const json=JSON.stringify(backup,null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const date=new Date().toISOString().slice(0,10);
+  a.href=url;a.download=`ComplyTrack_backup_${date}.json`;
+  document.body.appendChild(a);a.click();
+  document.body.removeChild(a);URL.revokeObjectURL(url);
+  showToast('Backup downloaded.');
+}
+
+function restoreFileSelected(input){
+  const file=input.files[0];
+  if(!file)return;
+  document.getElementById('restore-file-label').textContent=file.name;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      if(!data.clients||!data.devices){
+        showToast('Invalid backup file.');
+        return;
+      }
+      restoreParsed=data;
+      // Show preview
+      const clientCount=data.clients?data.clients.length:0;
+      const userCount=data.users?data.users.length:0;
+      const deviceCount=Object.values(data.devices||{}).reduce((s,d)=>s+(Array.isArray(d)?d.length:0),0);
+      const ts=data.timestamp?new Date(data.timestamp).toLocaleString():'Unknown';
+      document.getElementById('restore-preview').style.display='block';
+      document.getElementById('restore-preview').innerHTML=
+        `<strong>Backup details</strong><br>`+
+        `📅 Created: ${ts}<br>`+
+        `🏢 Clients: ${clientCount}<br>`+
+        `📋 Total devices: ${deviceCount}<br>`+
+        `👥 Users: ${userCount}`;
+      document.getElementById('restore-confirm-btn').style.display='block';
+    }catch(ex){
+      showToast('Could not read file — invalid format.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function restoreData(){
+  if(!restoreParsed){showToast('No backup file loaded.');return;}
+  if(!confirm('⚠️ This will permanently overwrite ALL current data with the backup.\n\nAre you absolutely sure?'))return;
+  try{
+    // Restore clients
+    if(restoreParsed.clients) saveClients(restoreParsed.clients);
+    // Restore users
+    if(restoreParsed.users) saveUsers(restoreParsed.users);
+    // Restore active client
+    if(restoreParsed.activeClientId) localStorage.setItem(ACTIVE_CLIENT_KEY,restoreParsed.activeClientId);
+    // Restore device data per client
+    if(restoreParsed.devices){
+      Object.entries(restoreParsed.devices).forEach(([clientId,devs])=>{
+        const key=deviceKeyForClient(clientId);
+        localStorage.setItem(key,JSON.stringify(devs));
+      });
+    }
+    restoreParsed=null;
+    document.getElementById('restore-preview').style.display='none';
+    document.getElementById('restore-confirm-btn').style.display='none';
+    document.getElementById('restore-file-label').textContent='Choose backup file…';
+    closeUserMgmt();
+    // Reload app state
+    load();renderClientSwitcher();updateClientUI();
+    showToast('✓ Data restored successfully.');
+  }catch(ex){
+    showToast('Restore failed: '+ex.message);
+  }
+}
+
+function openAddClientModal(){
+  // Reset fields
+  ['nc-name','nc-abbr','nc-notes'].forEach(x=>document.getElementById(x).value='');
+  document.getElementById('nc-colour').value='#1a4d6e';
+  document.getElementById('add-client-modal').style.display='flex';
 }
 
 function addClient(){
@@ -1814,12 +2358,12 @@ function addClient(){
   const notes=document.getElementById('nc-notes').value.trim();
   if(!name){showToast('Client name is required.');return;}
   const clients=getClients();
-  // Generate unique id from name
   const id='client_'+name.toLowerCase().replace(/[^a-z0-9]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'')+'_'+Date.now().toString(36);
   clients.push({id,name,abbr,colour,notes,builtIn:false});
   saveClients(clients);
   ['nc-name','nc-abbr','nc-notes'].forEach(x=>document.getElementById(x).value='');
   document.getElementById('nc-colour').value='#1a4d6e';
+  document.getElementById('add-client-modal').style.display='none';
   renderClientsList();
   renderClientSwitcher();
   showToast(`Client "${name}" added.`);
@@ -1842,8 +2386,10 @@ function deleteClient(id){
 }
 
 function switchSettingsTab(tab){
-  ['users','client','clients'].forEach(t=>{
-    document.getElementById('settings-pane-'+t).style.display=t===tab?'block':'none';
+  if(tab==='client') tab='clients';
+  ['users','clients','backup'].forEach(t=>{
+    const pane=document.getElementById('settings-pane-'+t);
+    if(pane) pane.style.display=t===tab?'block':'none';
     const btn=document.getElementById('stab-'+t);
     if(btn){
       btn.style.borderBottom=t===tab?'2px solid var(--accent)':'2px solid transparent';
@@ -1852,6 +2398,13 @@ function switchSettingsTab(tab){
     }
   });
   if(tab==='clients') renderClientsList();
+  if(tab==='backup'){
+    // Reset restore UI when switching to tab
+    document.getElementById('restore-file-label').textContent='Choose backup file…';
+    document.getElementById('restore-preview').style.display='none';
+    document.getElementById('restore-confirm-btn').style.display='none';
+    if(document.getElementById('restore-file-input')) document.getElementById('restore-file-input').value='';
+  }
 }
 
 function openSettings(tab){
@@ -1861,35 +2414,164 @@ function openSettings(tab){
   renderClientsList();
   switchSettingsTab(tab||'users');
   document.getElementById('user-modal').style.display='flex';
+  document.body.classList.add('modal-open');
 }
 
 // ── User Management ─────────────────────────────────────
 function openUserMgmt(){openSettings('users');}
-function closeUserMgmt(){document.getElementById('user-modal').style.display='none';}
+function closeUserMgmt(){document.getElementById('user-modal').style.display='none';document.body.classList.remove('modal-open');}
 function bgUserClose(e){if(e.target===document.getElementById('user-modal'))closeUserMgmt();}
 
 function renderUserTable(){
   const users=getUsers();
-  const rows=users.map((u,i)=>{
+  const el=document.getElementById('user-table');
+  if(!el)return;
+
+  if(!users.length){
+    el.outerHTML='<div id="user-table" style="color:var(--text3);font-size:13px;padding:0.5rem 0">No users found.</div>';
+    return;
+  }
+
+  // Role colour dots
+  const roleColour=p=>{
+    if(!p) return '#888';
+    if(p.manageUsers) return '#1a4d6e';   // admin — navy
+    if(p.editDevices) return '#1a6636';   // supervisor — green
+    return '#e67e22';                      // tester — orange
+  };
+
+  const cards=users.map((u,i)=>{
     const p=u.permissions||PRESETS.tester;
     const isSelf=u.username===currentUser.username;
-    const permCheckboxes=PERM_KEYS.map(k=>`
-      <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:${isSelf?'default':'pointer'};white-space:nowrap">
-        <input type="checkbox" ${p[k]?'checked':''} ${isSelf?'disabled':''} onchange="togglePerm(${i},'${k}',this.checked)" style="accent-color:var(--accent);width:13px;height:13px">
-        ${{recordTests:'Record tests',editDevices:'Edit devices',addDevices:'Add/delete',viewHistory:'View history',exportCSV:'Export CSV',manageUsers:'Manage users'}[k]}
-      </label>`).join('');
-    return`<tr style="vertical-align:top">
-      <td style="font-weight:500;padding-top:14px">${u.name}<br><span style="font-family:var(--mono);font-size:11px;color:var(--text3)">${u.username}</span></td>
-      <td style="padding-top:12px">${permLabel(p)}</td>
-      <td style="padding-top:10px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">${permCheckboxes}</div></td>
-      <td style="padding-top:14px;white-space:nowrap">
-        ${isSelf?'<span style="font-size:12px;color:var(--text3)">You</span>':`<button class="rbtn" onclick="resetUserPass(${i})" style="margin-bottom:4px;display:block">Reset pw</button><button class="rbtn del" onclick="deleteUser(${i})">Delete</button>`}
-      </td>
-    </tr>`;
+    return`<div onclick="openEditUser(${i})" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--r);margin-bottom:8px;background:${isSelf?'var(--accent-light)':'var(--surface)'};cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,.1)'" onmouseout="this.style.boxShadow=''">
+      <div style="width:18px;height:18px;border-radius:50%;background:${roleColour(p)};flex-shrink:0;border:2px solid rgba(0,0,0,.1)"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:13px">${u.name} ${isSelf?'<span style="font-size:11px;font-weight:400;color:var(--accent)">● You</span>':''}</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--text3)">${u.username}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0;align-items:center" onclick="event.stopPropagation()">
+        ${permLabel(p)}
+        <button class="btn" style="font-size:11px;padding:4px 10px" onclick="openEditUser(${i})">✏ Edit</button>
+        ${!isSelf?`<button class="btn" style="font-size:11px;padding:4px 10px;color:var(--red)" onclick="deleteUser(${i})">Delete</button>`:''}
+      </div>
+    </div>`;
   }).join('');
-  document.getElementById('user-table').innerHTML=`
-    <thead><tr><th>User</th><th>Level</th><th>Permissions</th><th></th></tr></thead>
-    <tbody>${rows}</tbody>`;
+
+  const container=document.createElement('div');
+  container.id='user-table';
+  container.innerHTML=cards;
+  el.parentNode.replaceChild(container,el);
+}
+
+function openEditUser(i){
+  const users=getUsers();
+  const u=users[i];
+  if(!u)return;
+  const p=u.permissions||PRESETS.tester;
+  const isSelf=u.username===currentUser.username;
+
+  let modal=document.getElementById('edit-user-modal');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='edit-user-modal';
+    modal.className='mbg';
+    modal.onclick=e=>{if(e.target===modal)modal.style.display='none';};
+    document.body.appendChild(modal);
+  }
+
+  const permNames={recordTests:'Record tests',editDevices:'Edit devices',addDevices:'Add/delete',viewHistory:'View history',exportCSV:'Export CSV',manageUsers:'Manage users'};
+  const permBoxes=PERM_KEYS.map(k=>`
+    <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:${isSelf?'default':'pointer'}">
+      <input type="checkbox" id="eu-${k}" ${p[k]?'checked':''} ${isSelf?'disabled':''} style="accent-color:var(--accent);width:14px;height:14px;flex-shrink:0">
+      ${permNames[k]}
+    </label>`).join('');
+
+  modal.innerHTML=`
+    <div class="modal" style="max-width:480px">
+      <div class="mhdr">
+        <div>
+          <div class="mtitle">Edit User</div>
+          <div class="msub-info">${u.name}</div>
+        </div>
+        <button class="mclose" onclick="document.getElementById('edit-user-modal').style.display='none'">&#x2715;</button>
+      </div>
+      <div class="modal-body">
+        <div class="frow">
+          <div class="field"><label>Full name</label><input type="text" id="eu-name" value="${(u.name||'').replace(/"/g,'&quot;')}"></div>
+          <div class="field"><label>Username</label><input type="text" id="eu-username" value="${u.username}" ${isSelf?'readonly style="opacity:.6"':''}></div>
+        </div>
+        <div class="field"><label>New password <span style="font-weight:400;color:var(--text3)">(leave blank to keep current)</span></label>
+          <input type="password" id="eu-pass" placeholder="Enter new password to change" autocomplete="new-password">
+        </div>
+        <div class="field">
+          <label>Preset</label>
+          <select id="eu-preset" onchange="applyEditUserPreset()" ${isSelf?'disabled style="opacity:.6"':''}>
+            <option value="tester">Tester</option>
+            <option value="supervisor">Supervisor</option>
+            <option value="admin">Admin</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+        <div style="background:var(--surface2);border-radius:var(--r);border:1px solid var(--border2);padding:12px">
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:10px">Permissions</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">${permBoxes}</div>
+        </div>
+      </div>
+      <div class="mfooter">
+        <button class="btn" onclick="document.getElementById('edit-user-modal').style.display='none'">Cancel</button>
+        <button class="btn btn-p" onclick="saveEditUser(${i})">Save changes</button>
+      </div>
+    </div>`;
+
+  // Set preset dropdown to match current permissions
+  const preset=modal.querySelector('#eu-preset');
+  if(preset){
+    if(PERM_KEYS.every(k=>p[k])) preset.value='admin';
+    else if(p.editDevices&&p.viewHistory&&!p.manageUsers) preset.value='supervisor';
+    else if(p.recordTests&&!p.editDevices) preset.value='tester';
+    else preset.value='custom';
+  }
+
+  modal.style.display='flex';
+}
+
+function applyEditUserPreset(){
+  const preset=document.getElementById('eu-preset').value;
+  const p=PRESETS[preset]||PRESETS.tester;
+  PERM_KEYS.forEach(k=>{
+    const el=document.getElementById('eu-'+k);
+    if(el) el.checked=!!p[k];
+  });
+}
+
+function saveEditUser(i){
+  const users=getUsers();
+  const u=users[i];
+  if(!u)return;
+  const name=document.getElementById('eu-name').value.trim();
+  const username=document.getElementById('eu-username').value.trim().toLowerCase();
+  const newPass=document.getElementById('eu-pass').value;
+  if(!name||!username){showToast('Name and username are required.');return;}
+  // Check username not taken by another user
+  if(username!==u.username&&users.find((x,j)=>j!==i&&x.username===username)){
+    showToast('Username already taken.');return;
+  }
+  const permissions={};
+  PERM_KEYS.forEach(k=>{
+    const el=document.getElementById('eu-'+k);
+    permissions[k]=el?el.checked:false;
+  });
+  users[i]={...u,name,username,permissions};
+  if(newPass) users[i].password=hashPass(newPass);
+  saveUsers(users);
+  // Update currentUser if editing self
+  if(u.username===currentUser.username){
+    currentUser={...users[i]};
+    showApp();
+  }
+  document.getElementById('edit-user-modal').style.display='none';
+  renderUserTable();
+  showToast('User updated.');
 }
 
 function togglePerm(i,key,val){
@@ -1903,6 +2585,16 @@ function togglePerm(i,key,val){
     showApp();
   }
   renderUserTable();
+}
+
+function openAddUserModal(){
+  // Reset fields and apply default preset
+  document.getElementById('nu-user').value='';
+  document.getElementById('nu-pass').value='';
+  document.getElementById('nu-name').value='';
+  document.getElementById('nu-preset').value='tester';
+  applyPreset();
+  document.getElementById('add-user-modal').style.display='flex';
 }
 
 function addUser(){
@@ -1919,6 +2611,7 @@ function addUser(){
   document.getElementById('nu-name').value='';
   document.getElementById('nu-preset').value='tester';
   applyPreset();
+  document.getElementById('add-user-modal').style.display='none';
   renderUserTable();
   showToast('User added.');
 }
@@ -2230,43 +2923,45 @@ function generateQR(url, deviceName){
 
 <!-- Map View Modal -->
 <div id="map-modal" style="display:none;position:fixed;inset:0;z-index:300;flex-direction:column;background:var(--bg)">
-  <!-- Map header -->
+  <!-- Map header row 1: title + close button -->
   <div style="background:var(--accent);color:#fff;padding:0 1rem;height:52px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-shrink:0;z-index:10">
-    <div style="font-weight:600;font-size:15px;display:flex;align-items:center;gap:8px">
+    <div style="font-weight:600;font-size:15px;display:flex;align-items:center;gap:8px;flex-shrink:0">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6.5" r="3" stroke="white" stroke-width="1.4"/><path d="M8 15C8 15 2 10.5 2 6.5a6 6 0 0112 0C14 10.5 8 15 8 15z" stroke="white" stroke-width="1.4" fill="none"/></svg>
       Device Map
     </div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <button id="map-locate-btn" onclick="mapLocateMe()" style="font-family:var(--sans);font-size:12px;padding:5px 10px;border-radius:20px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;cursor:pointer;display:flex;align-items:center;gap:5px">
+    <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+      <button id="map-locate-btn" onclick="mapLocateMe()" style="font-family:var(--sans);font-size:12px;padding:5px 10px;border-radius:20px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="2.5" stroke="white" stroke-width="1.2"/><path d="M6 1v1.5M6 9.5V11M1 6h1.5M9.5 6H11" stroke="white" stroke-width="1.2" stroke-linecap="round"/></svg>
-        My location
+        <span class="map-locate-label">My location</span>
       </button>
-      <div id="map-filter-btns" style="display:flex;gap:4px;flex-wrap:wrap">
-        <button class="mfbtn active" data-status="all" onclick="setMapFilter('all',this)">All</button>
-        <button class="mfbtn" data-status="overdue" onclick="setMapFilter('overdue',this)">Overdue</button>
-        <button class="mfbtn" data-status="due" onclick="setMapFilter('due',this)">Due</button>
-        <button class="mfbtn" data-status="due_next" onclick="setMapFilter('due_next',this)">Next month</button>
-        <button class="mfbtn" data-status="upcoming" onclick="setMapFilter('upcoming',this)">Upcoming</button>
-        <button class="mfbtn" data-status="failed" onclick="setMapFilter('failed',this)">Failed</button>
-        <button class="mfbtn" data-status="complete" onclick="setMapFilter('complete',this)">Completed</button>
-      </div>
-      <button onclick="closeMapView()" style="width:30px;height:30px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);cursor:pointer;color:#fff;font-size:16px;display:flex;align-items:center;justify-content:center">&#x2715;</button>
+      <!-- Close button — always visible, large touch target -->
+      <button onclick="closeMapView()" style="width:36px;height:36px;border-radius:10px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.15);cursor:pointer;color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:300">&#x2715;</button>
     </div>
   </div>
+  <!-- Map header row 2: filter tabs — horizontally scrollable -->
+  <div style="background:var(--accent);border-top:1px solid rgba(255,255,255,.12);padding:6px 12px;display:flex;gap:5px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-shrink:0">
+    <button class="mfbtn active" data-status="all" onclick="setMapFilter('all',this)">All</button>
+    <button class="mfbtn" data-status="overdue" onclick="setMapFilter('overdue',this)">Overdue</button>
+    <button class="mfbtn" data-status="due" onclick="setMapFilter('due',this)">Due</button>
+    <button class="mfbtn" data-status="due_next" onclick="setMapFilter('due_next',this)">Next month</button>
+    <button class="mfbtn" data-status="upcoming" onclick="setMapFilter('upcoming',this)">Upcoming</button>
+    <button class="mfbtn" data-status="failed" onclick="setMapFilter('failed',this)">Failed</button>
+    <button class="mfbtn" data-status="complete" onclick="setMapFilter('complete',this)">Completed</button>
+  </div>
   <!-- Legend -->
-  <div style="background:var(--surface);border-bottom:1px solid var(--border2);padding:6px 14px;display:flex;align-items:center;gap:14px;flex-shrink:0;flex-wrap:wrap">
-    <span style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Legend:</span>
-    <span style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="width:12px;height:12px;border-radius:50%;background:#c0392b;display:inline-block"></span>Overdue</span>
-    <span style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="width:12px;height:12px;border-radius:50%;background:#e67e22;display:inline-block"></span>Due this month</span>
-    <span style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="width:12px;height:12px;border-radius:50%;background:#1976d2;display:inline-block"></span>Due next month</span>
-    <span style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="width:12px;height:12px;border-radius:50%;background:#64b5f6;display:inline-block"></span>Upcoming</span>
-    <span style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="width:12px;height:12px;border-radius:50%;background:#888;display:inline-block"></span>No date set</span>
-    <span style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="width:12px;height:12px;border-radius:50%;background:#c0392b;display:inline-block;border:2px solid #fff;outline:1px solid #c0392b"></span>Failed</span>
-    <span style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="width:12px;height:12px;border-radius:50%;background:#27ae60;display:inline-block"></span>Completed</span>
-    <span id="map-count" style="margin-left:auto;font-size:12px;color:var(--text3)"></span>
+  <div style="background:var(--surface);border-bottom:1px solid var(--border2);padding:6px 14px;display:flex;align-items:center;gap:14px;flex-shrink:0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none">
+    <span style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap">Legend:</span>
+    <span style="display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap"><span style="width:11px;height:11px;border-radius:50%;background:#c0392b;display:inline-block;flex-shrink:0"></span>Overdue</span>
+    <span style="display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap"><span style="width:11px;height:11px;border-radius:50%;background:#e67e22;display:inline-block;flex-shrink:0"></span>Due</span>
+    <span style="display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap"><span style="width:11px;height:11px;border-radius:50%;background:#1976d2;display:inline-block;flex-shrink:0"></span>Next month</span>
+    <span style="display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap"><span style="width:11px;height:11px;border-radius:50%;background:#64b5f6;display:inline-block;flex-shrink:0"></span>Upcoming</span>
+    <span style="display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap"><span style="width:11px;height:11px;border-radius:50%;background:#888;display:inline-block;flex-shrink:0"></span>No date</span>
+    <span style="display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap"><span style="width:11px;height:11px;border-radius:50%;background:#c0392b;display:inline-block;flex-shrink:0;border:2px solid #fff;outline:1px solid #c0392b"></span>Failed</span>
+    <span style="display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap"><span style="width:11px;height:11px;border-radius:50%;background:#27ae60;display:inline-block;flex-shrink:0"></span>Completed</span>
+    <span id="map-count" style="margin-left:auto;font-size:12px;color:var(--text3);white-space:nowrap;padding-left:8px"></span>
   </div>
   <!-- Map container -->
-  <div id="map-container" style="flex:1;position:relative">
+  <div id="map-container" style="flex:1;position:relative;min-height:0">
     <div id="leaflet-map" style="width:100%;height:100%"></div>
   </div>
 </div>
@@ -2440,6 +3135,29 @@ function closeQRScanner(){
   document.getElementById('qr-modal').style.display='none';
 }
 // ─────────────────────────────────────────────────────────
+</script>
+
+<!-- Offline indicator banner -->
+<div id="offline-banner">⚡ You're offline — device list and test recording still work. Map tiles may be limited.</div>
+
+<script>
+// ── Service Worker registration ──────────────────────────
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg=>console.log('SW registered, scope:', reg.scope))
+      .catch(err=>console.log('SW registration failed:', err));
+  });
+}
+
+// ── Offline/online banner ────────────────────────────────
+function updateOnlineStatus(){
+  const banner=document.getElementById('offline-banner');
+  if(banner) banner.style.display=navigator.onLine?'none':'block';
+}
+window.addEventListener('online',  updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+updateOnlineStatus();
 </script>
 </body>
 </html>

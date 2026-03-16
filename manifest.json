@@ -1,0 +1,20 @@
+{
+  "name": "ComplyTrack",
+  "short_name": "ComplyTrack",
+  "description": "Compliance Management — Backflow Device Register",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0d2d44",
+  "theme_color": "#1a4d6e",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' stroke='%234ade80' stroke-width='4.5' stroke-linecap='round' stroke-dasharray='148 175' stroke-dashoffset='44' fill='none'/%3E%3Ccircle cx='32' cy='32' r='20' fill='%231e3a5f'/%3E%3Cpath d='M21 32l8 8L43 22' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["utilities", "business"],
+  "lang": "en-AU"
+}
