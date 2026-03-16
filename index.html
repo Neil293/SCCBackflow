@@ -512,7 +512,6 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
     <!-- Status pills — multi-select -->
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px" id="mob-status-pills">
       <button onclick="setAllStatuses()" style="font-family:var(--sans);font-size:12px;font-weight:500;padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:rgba(255,255,255,.85);cursor:pointer">All</button>
-      <button onclick="resetStatusFilter()" style="font-family:var(--sans);font-size:12px;font-weight:500;padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:rgba(255,255,255,.85);cursor:pointer">Reset</button>
       <button onclick="toggleStatusPill('overdue',this)" data-status="overdue" style="font-family:var(--sans);font-size:12px;font-weight:700;padding:5px 12px;border-radius:20px;border:none;background:#c0392b;color:#fff;cursor:pointer">Overdue</button>
       <button onclick="toggleStatusPill('due',this)" data-status="due" style="font-family:var(--sans);font-size:12px;font-weight:700;padding:5px 12px;border-radius:20px;border:none;background:#e67e22;color:#fff;cursor:pointer">Due this month</button>
       <button onclick="toggleStatusPill('due_next',this)" data-status="due_next" style="font-family:var(--sans);font-size:12px;font-weight:500;padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);cursor:pointer">Next month</button>
@@ -560,6 +559,9 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
 </div>
 <main>
   <div id="alert-area"></div>
+  <div class="page-hdr" style="margin-bottom:0">
+    <p id="page-subtitle" style="margin:0"></p>
+  </div>
   <div class="metrics" id="metrics"></div>
   <!-- Mobile month quick-select pills + count -->
   <div id="mob-filter-bar" style="display:none;padding:5px 0.75rem 4px;display:flex;align-items:center;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none">
@@ -1278,7 +1280,7 @@ function switchClient(id){
   setActiveClientId(id);
   document.getElementById('search').value='';
   document.getElementById('f-suburb').value='';
-  window._activeStatuses=new Set(['overdue','due']);
+  window._activeStatuses=new Set(['overdue','due','due_next','upcoming','failed','complete','pending']);
   load();
   if(window._firebaseReady) startFirebaseListener();
 }
@@ -1375,7 +1377,7 @@ function fmtDate(d){
 
 // ── Multi-select status filter ───────────────────────────
 // Default: show overdue + due this month
-window._activeStatuses = new Set(['overdue','due']);
+window._activeStatuses = new Set(['overdue','due','due_next','upcoming','failed','complete','pending']);
 
 const STATUS_COLOURS = {
   overdue: {on:'#c0392b', label:'Overdue'},
@@ -1393,7 +1395,7 @@ function setAllStatuses(){
 }
 
 function resetStatusFilter(){
-  window._activeStatuses=new Set(['overdue','due']);
+  window._activeStatuses=new Set(['overdue','due','due_next','upcoming','failed','complete','pending']);
   syncStatusPillStyles();
   render();
 }
@@ -1601,7 +1603,6 @@ function render(){
 
   const ab=document.getElementById('alert-area');
   ab.innerHTML='';
-  else ab.innerHTML='';
 }
 
 function deviceRow(d,hideSuburb){
