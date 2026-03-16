@@ -1054,6 +1054,21 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
   </div>
 </div>
 
+<!-- Custom confirm dialog -->
+<div id="ct-confirm-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:900;align-items:center;justify-content:center;padding:1.5rem">
+  <div style="background:var(--surface);border-radius:18px;padding:1.5rem;max-width:340px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.3)">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:0.75rem">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="10" fill="#fff3cd" stroke="#e6a817" stroke-width="1.5"/><path d="M11 7v5M11 15v.5" stroke="#e6a817" stroke-width="2" stroke-linecap="round"/></svg>
+      <div style="font-size:15px;font-weight:700;color:var(--text)" id="ct-confirm-title">ComplyTrack</div>
+    </div>
+    <div style="font-size:14px;color:var(--text2);line-height:1.5;margin-bottom:1.25rem" id="ct-confirm-msg"></div>
+    <div style="display:flex;gap:10px">
+      <button id="ct-confirm-cancel" style="font-family:var(--sans);flex:1;padding:11px;font-size:14px;font-weight:500;border-radius:var(--r);border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer">Cancel</button>
+      <button id="ct-confirm-ok" style="font-family:var(--sans);flex:1;padding:11px;font-size:14px;font-weight:600;border-radius:var(--r);border:none;background:var(--accent);color:#fff;cursor:pointer">OK</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <script src="data.js"></script>
 <script>
@@ -1136,7 +1151,7 @@ function applySavedLocation(label,btn){
   if(label) label.textContent='📍 Nearest first';
   if(btn){btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';btn.style.opacity='1';}
   _savedStatusesBeforeSort=new Set(window._activeStatuses);
-  window._activeStatuses=new Set([...window._activeStatuses].filter(s=>s!=='complete'));
+  window._activeStatuses=new Set([...window._activeStatuses].filter(s=>s!=='complete'&&s!=='repaired'));
   syncStatusPillStyles();
   render();
 }
@@ -1213,7 +1228,7 @@ function sortByNearest(){
       btn.style.color='#fff';
       btn.style.borderColor='var(--accent)';
       _savedStatusesBeforeSort=new Set(window._activeStatuses);
-      window._activeStatuses=new Set([...window._activeStatuses].filter(s=>s!=='complete'));
+      window._activeStatuses=new Set([...window._activeStatuses].filter(s=>s!=='complete'&&s!=='repaired'));
       syncStatusPillStyles();
       render();
       showToast('Sorted by nearest device');
@@ -1282,14 +1297,15 @@ function resetToSeedData(){
     return;
   }
   // Step 2: final confirmation
-  if(!confirm(`⚠️ Are you sure?\n\nThis will permanently wipe all recorded test results for "${client.name}" and restore the original device list.\n\nThis cannot be undone.`))return;
-  if(client.builtIn){
-    devices=SEED_DATA.map(d=>({...d,clientId:SCC_CLIENT_ID}));
-  } else {
-    devices=[];
-  }
-  save();populateSuburbFilter();render();
-  showToast('Devices restored to defaults.');
+  ctConfirm(
+    `This will permanently wipe all recorded test results for "${client.name}" and restore the original device list. This cannot be undone.`,
+    ()=>{
+      if(client.builtIn){devices=SEED_DATA.map(d=>({...d,clientId:SCC_CLIENT_ID}));}else{devices=[];}
+      save();populateSuburbFilter();render();
+      showToast('Devices restored to defaults.');
+    },
+    'Restore default devices', 'Restore', true
+  );
 }
 
 function save(){
@@ -1626,7 +1642,12 @@ function render(){
     if(q&&![d.suburb,d.make,d.model,d.serial,d.location,d.notes||''].join(' ').toLowerCase().includes(q))return false;
     if(fc&&d.suburb!==fc)return false;
     if(fsm&&d.scheduledMonth!==fsm)return false;
-    if(fst&&fst.size>0&&!fst.has(getStatus(d)))return false;
+    if(fst&&fst.size>0){
+      const s=getStatus(d);
+      // repaired is treated the same as complete for filtering
+      const filterStatus=(s==='repaired')?'complete':s;
+      if(!fst.has(filterStatus)) return false;
+    }
     return true;
   });
 
@@ -1720,7 +1741,7 @@ function render(){
   const total=devices.length;
   const overdue=devices.filter(d=>getStatus(d)==='overdue').length;
   const due=devices.filter(d=>getStatus(d)==='due').length;
-  const complete=devices.filter(d=>getStatus(d)==='complete').length;
+  const complete=devices.filter(d=>getStatus(d)==='complete'||getStatus(d)==='repaired').length;
   const pct=total?Math.round((complete/total)*100):0;
 
   if(fsm){
@@ -1905,12 +1926,33 @@ function openDevice(id){
   }
 }
 
+// ── Custom confirm dialog ────────────────────────────────
+function ctConfirm(msg, onOk, title='ComplyTrack', okLabel='OK', okDanger=false){
+  const overlay=document.getElementById('ct-confirm-overlay');
+  document.getElementById('ct-confirm-title').textContent=title;
+  document.getElementById('ct-confirm-msg').textContent=msg;
+  const okBtn=document.getElementById('ct-confirm-ok');
+  const cancelBtn=document.getElementById('ct-confirm-cancel');
+  okBtn.textContent=okLabel;
+  okBtn.style.background=okDanger?'var(--red)':'var(--accent)';
+  overlay.style.display='flex';
+  const close=()=>{ overlay.style.display='none'; };
+  okBtn.onclick=()=>{ close(); onOk(); };
+  cancelBtn.onclick=close;
+  overlay.onclick=(e)=>{ if(e.target===overlay) close(); };
+}
+
 function markDecommissioned(){
-  if(!confirm('Mark this device as decommissioned? This will record it as no longer in use.')) return;
-  const today=new Date().toISOString().slice(0,10);
-  document.getElementById('f-date').value=today;
-  document.getElementById('f-result2').value='Decommissioned';
-  saveTest();
+  ctConfirm(
+    'Mark this device as decommissioned? This will record it as no longer in use.',
+    ()=>{
+      const today=new Date().toISOString().slice(0,10);
+      document.getElementById('f-date').value=today;
+      document.getElementById('f-result2').value='Decommissioned';
+      saveTest();
+    },
+    'Decommission device','Confirm','danger'
+  );
 }
 
 function markTestedToday(result){
@@ -1919,14 +1961,32 @@ function markTestedToday(result){
   document.getElementById('f-result2').value=result||'Pass';
   if(result==='Fail'){
     showFailNotesPopup();
+  } else if(result==='Repaired'){
+    showRepairedNotesPopup();
   } else {
     saveTest();
   }
 }
 function showFailNotesPopup(){
-  // Remove any existing popup
+  showNotesPopup('fail');
+}
+
+function showRepairedNotesPopup(){
+  showNotesPopup('repaired');
+}
+
+function showNotesPopup(type){
   const existing=document.getElementById('fail-notes-popup');
   if(existing) existing.remove();
+
+  const isFail=type==='fail';
+  const colour=isFail?'var(--red)':'#1565c0';
+  const title=isFail?'⚠️ Fail — Add notes':'🔧 Repaired — Add notes';
+  const subtitle=isFail?'Describe the fault or required action':'Describe the repair carried out';
+  const placeholder=isFail
+    ?'e.g. Relief valve leaking, retesting required, valve needs replacement…'
+    :'e.g. Replaced relief valve, re-seated seat, pressure tested and confirmed OK…';
+  const btnLabel=isFail?'Save fail record':'Save repair record';
 
   const popup=document.createElement('div');
   popup.id='fail-notes-popup';
@@ -1938,21 +1998,20 @@ function showFailNotesPopup(){
       </div>
       <div style="padding:1rem 1.25rem 0.75rem;border-bottom:1px solid var(--border2);display:flex;align-items:center;justify-content:space-between">
         <div>
-          <div style="font-size:16px;font-weight:600;color:var(--red)">⚠️ Fail — Add notes</div>
-          <div style="font-size:12px;color:var(--text2);margin-top:2px">Describe the fault or required action</div>
+          <div style="font-size:16px;font-weight:600;color:${colour}">${title}</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px">${subtitle}</div>
         </div>
         <button onclick="skipFailNotes()" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid var(--border);background:transparent;cursor:pointer;font-size:15px;color:var(--text2);flex-shrink:0">&#x2715;</button>
       </div>
       <div style="padding:1rem 1.25rem;flex:1;overflow-y:auto">
-        <textarea id="fail-notes-input" placeholder="e.g. Relief valve leaking, retesting required, valve needs replacement…" style="font-family:var(--sans);width:100%;height:120px;padding:10px 12px;font-size:15px;border:1px solid var(--border);border-radius:var(--r);background:var(--surface);color:var(--text);resize:none;box-sizing:border-box"></textarea>
+        <textarea id="fail-notes-input" placeholder="${placeholder}" style="font-family:var(--sans);width:100%;height:120px;padding:10px 12px;font-size:15px;border:1px solid var(--border);border-radius:var(--r);background:var(--surface);color:var(--text);resize:none;box-sizing:border-box"></textarea>
       </div>
       <div style="padding:0.75rem 1.25rem 2rem;border-top:1px solid var(--border2);display:flex;gap:10px">
         <button onclick="skipFailNotes()" style="font-family:var(--sans);flex:1;padding:13px;font-size:14px;font-weight:500;border-radius:var(--r);border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer">Skip</button>
-        <button onclick="saveFailNotes()" style="font-family:var(--sans);flex:2;padding:13px;font-size:14px;font-weight:700;border-radius:var(--r);border:none;background:var(--red);color:#fff;cursor:pointer">Save fail record</button>
+        <button onclick="saveFailNotes()" style="font-family:var(--sans);flex:2;padding:13px;font-size:14px;font-weight:700;border-radius:var(--r);border:none;background:${colour};color:#fff;cursor:pointer">${btnLabel}</button>
       </div>
     </div>`;
   document.body.appendChild(popup);
-  // Focus textarea after a short delay so keyboard doesn't auto-open
   setTimeout(()=>{
     const ta=document.getElementById('fail-notes-input');
     if(ta) ta.blur();
@@ -2465,13 +2524,14 @@ function showEmailHistory(suburb, evt){
 }
 
 function clearEmailHistory(suburb){
-  if(!confirm(`Clear all email history for ${suburb}?`))return;
-  const log=getEmailLog();
-  delete log[suburb];
-  localStorage.setItem(EMAIL_LOG_KEY, JSON.stringify(log));
-  document.getElementById('email-history-modal').style.display='none';
-  render();
-  showToast('Email history cleared.');
+  ctConfirm(`Clear all email history for ${suburb}?`, ()=>{
+    const log=getEmailLog();
+    delete log[suburb];
+    localStorage.setItem(EMAIL_LOG_KEY, JSON.stringify(log));
+    document.getElementById('email-history-modal').style.display='none';
+    render();
+    showToast('Email history cleared.');
+  }, 'Clear history', 'Clear', true);
 }
 
 function showEmailModal(subject, body, to='', cc='', suburb=''){
@@ -3021,32 +3081,32 @@ function restoreFileSelected(input){
 
 function restoreData(){
   if(!restoreParsed){showToast('No backup file loaded.');return;}
-  if(!confirm('⚠️ This will permanently overwrite ALL current data with the backup.\n\nAre you absolutely sure?'))return;
-  try{
-    // Restore clients
-    if(restoreParsed.clients) saveClients(restoreParsed.clients);
-    // Restore users
-    if(restoreParsed.users) saveUsers(restoreParsed.users);
-    // Restore active client
-    if(restoreParsed.activeClientId) localStorage.setItem(ACTIVE_CLIENT_KEY,restoreParsed.activeClientId);
-    // Restore device data per client
-    if(restoreParsed.devices){
-      Object.entries(restoreParsed.devices).forEach(([clientId,devs])=>{
-        const key=deviceKeyForClient(clientId);
-        localStorage.setItem(key,JSON.stringify(devs));
-      });
-    }
-    restoreParsed=null;
-    document.getElementById('restore-preview').style.display='none';
-    document.getElementById('restore-confirm-btn').style.display='none';
-    document.getElementById('restore-file-label').textContent='Choose backup file…';
-    closeUserMgmt();
-    // Reload app state
-    load();renderClientSwitcher();updateClientUI();
-    showToast('✓ Data restored successfully.');
-  }catch(ex){
-    showToast('Restore failed: '+ex.message);
-  }
+  ctConfirm(
+    'This will permanently overwrite ALL current data with the backup. Are you absolutely sure?',
+    ()=>{
+      try{
+        if(restoreParsed.clients) saveClients(restoreParsed.clients);
+        if(restoreParsed.users) saveUsers(restoreParsed.users);
+        if(restoreParsed.activeClientId) localStorage.setItem(ACTIVE_CLIENT_KEY,restoreParsed.activeClientId);
+        if(restoreParsed.devices){
+          Object.entries(restoreParsed.devices).forEach(([clientId,devs])=>{
+            const key=deviceKeyForClient(clientId);
+            localStorage.setItem(key,JSON.stringify(devs));
+          });
+        }
+        restoreParsed=null;
+        document.getElementById('restore-preview').style.display='none';
+        document.getElementById('restore-confirm-btn').style.display='none';
+        document.getElementById('restore-file-label').textContent='Choose backup file…';
+        closeUserMgmt();
+        load();renderClientSwitcher();updateClientUI();
+        showToast('✓ Data restored successfully.');
+      }catch(ex){
+        showToast('Restore failed: '+ex.message);
+      }
+    },
+    'Restore from backup', 'Restore', true
+  );
 }
 
 function openAddClientModal(){
@@ -3078,16 +3138,18 @@ function deleteClient(id){
   const clients=getClients();
   const c=clients.find(x=>x.id===id);
   if(!c)return;
-  if(!confirm(`Delete client "${c.name}"?\n\nAll device data for this client will be permanently removed.`))return;
-  // Remove device data
-  try{localStorage.removeItem(`bf_devices_${id}_v1`);}catch(e){}
-  // Remove from list
-  saveClients(clients.filter(x=>x.id!==id));
-  // Switch away if this was active
-  if(getActiveClientId()===id) switchClient(SCC_CLIENT_ID);
-  renderClientsList();
-  renderClientSwitcher();
-  showToast(`Client "${c.name}" deleted.`);
+  ctConfirm(
+    `Delete client "${c.name}"? All device data for this client will be permanently removed.`,
+    ()=>{
+      try{localStorage.removeItem(`bf_devices_${id}_v1`);}catch(e){}
+      saveClients(clients.filter(x=>x.id!==id));
+      if(getActiveClientId()===id) switchClient(SCC_CLIENT_ID);
+      renderClientsList();
+      renderClientSwitcher();
+      showToast(`Client "${c.name}" deleted.`);
+    },
+    'Delete client', 'Delete', true
+  );
 }
 
 function switchSettingsTab(tab){
@@ -3330,11 +3392,16 @@ function addUser(){
 
 function deleteUser(i){
   const users=getUsers();
-  if(!confirm(`Delete user "${users[i].name}"?`))return;
-  users.splice(i,1);
-  saveUsers(users);
-  renderUserTable();
-  showToast('User deleted.');
+  ctConfirm(
+    `Delete user "${users[i].name}"?`,
+    ()=>{
+      users.splice(i,1);
+      saveUsers(users);
+      renderUserTable();
+      showToast('User deleted.');
+    },
+    'Delete user', 'Delete', true
+  );
 }
 
 function resetUserPass(i){
