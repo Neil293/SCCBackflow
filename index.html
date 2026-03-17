@@ -1063,8 +1063,8 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
     <button id="map-picker-confirm" onclick="confirmMapPicker()" style="display:none;font-family:var(--sans);padding:7px 16px;border-radius:20px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer">Use this location</button>
   </div>
   <!-- Map -->
-  <div id="map-picker-container" style="flex:1;position:relative;min-height:0">
-    <div id="map-picker-map" style="width:100%;height:100%"></div>
+  <div id="map-picker-container" style="flex:1;position:relative;overflow:hidden">
+    <div id="map-picker-map" style="position:absolute;inset:0;width:100%;height:100%"></div>
   </div>
 </div>
 
@@ -3508,46 +3508,55 @@ let mapPickerTarget=null; // 'edit' or 'add'
 
 function openMapPicker(target){
   mapPickerTarget=target;
-  document.getElementById('map-picker-modal').style.display='flex';
+  const modal=document.getElementById('map-picker-modal');
+  modal.style.display='flex';
   document.getElementById('map-picker-coords').textContent='Tap anywhere on the map to drop a pin';
   document.getElementById('map-picker-confirm').style.display='none';
-  // Init map after display
+
+  // Explicitly set map container height so Leaflet can measure it
+  const container=document.getElementById('map-picker-container');
+  const mapDiv=document.getElementById('map-picker-map');
+
+  // Use a longer timeout to ensure layout is complete
   setTimeout(()=>{
-    if(!mapPickerMap){
-      // Centre on existing coords if available, else default
-      let startLat=-35.0, startLng=150.5, zoom=11;
-      if(target==='edit'){
-        const lat=parseFloat(document.getElementById('e-lat').value);
-        const lng=parseFloat(document.getElementById('e-lng').value);
-        if(!isNaN(lat)&&!isNaN(lng)){startLat=lat;startLng=lng;zoom=16;}
-      } else {
-        const lat=parseFloat(document.getElementById('a-lat').value);
-        const lng=parseFloat(document.getElementById('a-lng').value);
-        if(!isNaN(lat)&&!isNaN(lng)){startLat=lat;startLng=lng;zoom=16;}
-        else if(devices.length){
-          const withGps=devices.filter(d=>d.lat&&d.lng);
-          if(withGps.length){
-            startLat=withGps.reduce((s,d)=>s+d.lat,0)/withGps.length;
-            startLng=withGps.reduce((s,d)=>s+d.lng,0)/withGps.length;
-          }
+    const availH=window.innerHeight - 52 - 44; // subtract header + info bar
+    container.style.height=availH+'px';
+    mapDiv.style.height=availH+'px';
+
+    let startLat=-35.0, startLng=150.5, zoom=11;
+    if(target==='edit'){
+      const lat=parseFloat(document.getElementById('e-lat').value);
+      const lng=parseFloat(document.getElementById('e-lng').value);
+      if(!isNaN(lat)&&!isNaN(lng)){startLat=lat;startLng=lng;zoom=16;}
+    } else {
+      const lat=parseFloat(document.getElementById('a-lat').value);
+      const lng=parseFloat(document.getElementById('a-lng').value);
+      if(!isNaN(lat)&&!isNaN(lng)){startLat=lat;startLng=lng;zoom=16;}
+      else if(devices.length){
+        const withGps=devices.filter(d=>d.lat&&d.lng);
+        if(withGps.length){
+          startLat=withGps.reduce((s,d)=>s+d.lat,0)/withGps.length;
+          startLng=withGps.reduce((s,d)=>s+d.lng,0)/withGps.length;
         }
       }
+    }
+
+    if(!mapPickerMap){
       mapPickerMap=L.map('map-picker-map',{zoomControl:true}).setView([startLat,startLng],zoom);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
         attribution:'© OpenStreetMap',maxZoom:19
       }).addTo(mapPickerMap);
       mapPickerMap.on('click',onMapPickerClick);
     } else {
-      mapPickerMap.invalidateSize();
-      // If editing device with existing coords, show existing pin
+      mapPickerMap.setView([startLat,startLng],zoom);
       if(target==='edit'){
         const lat=parseFloat(document.getElementById('e-lat').value);
         const lng=parseFloat(document.getElementById('e-lng').value);
         if(!isNaN(lat)&&!isNaN(lng)) setMapPickerPin(lat,lng);
       }
     }
-    mapPickerMap.invalidateSize();
-  },50);
+    setTimeout(()=>mapPickerMap.invalidateSize(),100);
+  },150);
 }
 
 function onMapPickerClick(e){
