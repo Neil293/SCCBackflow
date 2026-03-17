@@ -1396,7 +1396,11 @@ function setSyncStatus(status, detail){
     dot.className='sync-dot error';
     label.textContent='Sync error — tap';
     const msg=detail||'Unknown error';
-    indicator.onclick=()=>alert('Sync error:\n\n'+msg+'\n\nFix: Go to Firebase Console → Firestore → Rules\nand set: allow read, write: if true;');
+    indicator.onclick=()=>ctConfirm(
+      'Sync error:\n\n'+msg+'\n\nThis is usually caused by Firebase quota being exceeded. Quota resets daily — try again later, or upgrade to Firebase Blaze plan.',
+      ()=>{},
+      'Sync Error','OK',false
+    );
   }
 }
 
