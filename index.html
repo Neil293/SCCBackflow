@@ -2631,13 +2631,14 @@ function emailSuburbReport(suburb, evt){
 
   const fmtDate=s=>{if(!s)return'—';const[y,m,d]=s.split('-');return`${d}/${m}/${y}`;};
 
+  const separator='  ' + '─'.repeat(50);
   const lines=tested.map(d=>{
     const lastLog=d.testLog&&d.testLog.length?d.testLog[d.testLog.length-1]:null;
     const tester=lastLog?lastLog.tester:'—';
     const result=d.testResult==='Pass'?'PASS':'FAIL';
     const bfId=d.backflowId?` [${d.backflowId}]`:'';
-    return `  • Serial: ${d.serial}${bfId} | ${d.make} ${d.model} ${d.size}mm\n    Location: ${d.location.slice(0,80)}\n    Tested: ${fmtDate(d.testDate)} | Result: ${result} | By: ${tester}`;
-  }).join('\n\n');
+    return `${separator}\n  Serial:    ${d.serial}${bfId}\n  Device:    ${d.make} ${d.model} ${d.size}mm\n  Location:  ${d.location.slice(0,80)}\n  Tested:    ${fmtDate(d.testDate)}\n  Result:    ${result}\n  Tested by: ${tester}${d.notes?'\n  Notes:     '+d.notes:''}`;
+  }).join('\n') + '\n' + separator;
 
   const failSection=failed.length?`\nDEVICES REQUIRING ATTENTION (${failed.length}):\n`+failed.map(d=>`  ⚠ Serial: ${d.serial} — ${d.make} ${d.model} — ${d.location.slice(0,60)}`).join('\n')+'\n':'';
 
