@@ -1897,8 +1897,8 @@ function openDevice(id){
         const origIdx=d.testLog.length-1-i;
         const resultClass=l.result==='Pass'?'b-complete':l.result==='Fail'?'b-failed':l.result==='Repaired'?'':'b-pend';
         const deleteBtn=can('manageUsers')
-          ?`<button onclick="deleteTestLogEntry(${d.id},${origIdx})" title="Delete record" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--text3);display:flex;align-items:center;opacity:.6" onmouseover="this.style.opacity=1;this.style.color='var(--red)'" onmouseout="this.style.opacity=.6;this.style.color='var(--text3)'">
-              <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M1.5 3h10M4.5 3V2a1 1 0 011-1h2a1 1 0 011 1v1M5 6v4M8 6v4M2.5 3l.7 8a1 1 0 001 .9h4.6a1 1 0 001-.9l.7-8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          ?`<button onclick="deleteTestLogEntry(${d.id},${origIdx})" title="Delete record" style="background:none;border:none;cursor:pointer;padding:6px 4px;color:var(--red);display:flex;align-items:center;opacity:.5" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=.5">
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1.5 3h10M4.5 3V2a1 1 0 011-1h2a1 1 0 011 1v1M5 6v4M8 6v4M2.5 3l.7 8a1 1 0 001 .9h4.6a1 1 0 001-.9l.7-8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>`
           :'';
         return`<tr style="border-bottom:1px solid var(--border2)">
