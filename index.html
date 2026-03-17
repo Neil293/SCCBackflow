@@ -1892,34 +1892,27 @@ function openDevice(id){
   if(histEl){
     if(isAdmin&&d.testLog&&d.testLog.length>0){
       const reversed=[...d.testLog].reverse().slice(0,8);
-      const rows=reversed.map((l,i)=>{
-        // original index in testLog (reversed, so map back)
+      const cards=reversed.map((l,i)=>{
         const origIdx=d.testLog.length-1-i;
-        const resultClass=l.result==='Pass'?'b-complete':l.result==='Fail'?'b-failed':l.result==='Repaired'?'':'b-pend';
+        const resultColour=l.result==='Pass'?'var(--green)':l.result==='Fail'?'var(--red)':l.result==='Repaired'?'#1565c0':'var(--text2)';
+        const resultBg=l.result==='Pass'?'var(--green-bg)':l.result==='Fail'?'var(--red-bg)':l.result==='Repaired'?'#e3f0fc':'var(--surface2)';
         const deleteBtn=can('manageUsers')
-          ?`<button onclick="deleteTestLogEntry(${d.id},${origIdx})" title="Delete record" style="background:none;border:none;cursor:pointer;padding:6px 4px;color:var(--red);display:flex;align-items:center;opacity:.5" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=.5">
-              <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1.5 3h10M4.5 3V2a1 1 0 011-1h2a1 1 0 011 1v1M5 6v4M8 6v4M2.5 3l.7 8a1 1 0 001 .9h4.6a1 1 0 001-.9l.7-8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          ?`<button onclick="deleteTestLogEntry(${d.id},${origIdx})" title="Delete record" style="font-family:var(--sans);background:none;border:none;cursor:pointer;padding:4px 6px;color:var(--red);opacity:.5;flex-shrink:0;display:flex;align-items:center" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=.5">
+              <svg width="14" height="14" viewBox="0 0 13 13" fill="none"><path d="M1.5 3h10M4.5 3V2a1 1 0 011-1h2a1 1 0 011 1v1M5 6v4M8 6v4M2.5 3l.7 8a1 1 0 001 .9h4.6a1 1 0 001-.9l.7-8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>`
           :'';
-        return`<tr style="border-bottom:1px solid var(--border2)">
-          <td style="padding:6px 6px;font-size:12px;color:var(--text2);white-space:nowrap">${fmtDate(l.date)}</td>
-          <td style="padding:6px 6px"><span class="badge ${resultClass}"><span class="bdot"></span>${l.result}</span></td>
-          <td style="padding:6px 6px;font-size:12px;color:var(--text2)">${l.tester}</td>
-          <td style="padding:6px 6px;font-size:12px;color:var(--text2);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.notes||'—'}</td>
-          <td style="padding:6px 0;text-align:right">${deleteBtn}</td>
-        </tr>`;
+        return`<div style="background:var(--surface);border-radius:10px;border:1px solid var(--border2);padding:8px 10px;margin-bottom:6px;display:flex;align-items:center;gap:8px">
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+              <span style="font-size:12px;color:var(--text2);white-space:nowrap">${fmtDate(l.date)}</span>
+              <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:${resultBg};color:${resultColour}">${l.result}</span>
+            </div>
+            <div style="font-size:11px;color:var(--text3)">${l.tester}${l.notes?` · ${l.notes.slice(0,40)}${l.notes.length>40?'…':''}`:''}</div>
+          </div>
+          ${deleteBtn}
+        </div>`;
       }).join('');
-      histEl.innerHTML=`<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:8px">Test history</div>
-        <table style="width:100%;border-collapse:collapse;font-size:12px">
-          <thead><tr style="border-bottom:1px solid var(--border2)">
-            <th style="text-align:left;padding:4px 6px;color:var(--text3);font-size:11px">Date</th>
-            <th style="text-align:left;padding:4px 6px;color:var(--text3);font-size:11px">Result</th>
-            <th style="text-align:left;padding:4px 6px;color:var(--text3);font-size:11px">Tester</th>
-            <th style="text-align:left;padding:4px 6px;color:var(--text3);font-size:11px">Notes</th>
-            <th></th>
-          </tr></thead>
-          <tbody>${rows}</tbody>
-        </table>`;
+      histEl.innerHTML=`<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:8px">Test history</div>${cards}`;
       histEl.style.display='block';
     } else {
       histEl.style.display='none';
