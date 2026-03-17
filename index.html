@@ -2786,38 +2786,47 @@ function clearEmailHistory(suburb){
 }
 
 function showEmailModal(subject, body, to='', cc='', suburb=''){
-  if(!modal){
-    modal=document.createElement('div');
-    modal.id='email-report-modal';
-    modal.className='mbg';
-    modal.onclick=e=>{if(e.target===modal)modal.style.display='none';};
-    document.body.appendChild(modal);
-  }
-  modal.innerHTML=`
-    <div class="modal" style="max-width:580px">
-      <div class="mhdr">
+  // Remove any existing modal
+  const existing=document.getElementById('email-report-modal');
+  if(existing) existing.remove();
+
+  const overlay=document.createElement('div');
+  overlay.id='email-report-modal';
+  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.55);z-index:500;display:flex;align-items:flex-end;justify-content:center';
+  overlay.onclick=e=>{if(e.target===overlay)overlay.remove();};
+
+  const safeSubject=subject.replace(/"/g,'&quot;').replace(/`/g,'&#96;');
+  const safeBody=body.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/`/g,'&#96;');
+  const safeTo=to.replace(/"/g,'&quot;');
+  const safeCc=cc.replace(/"/g,'&quot;');
+  const safeSuburb=suburb.replace(/'/g,"\\'");
+
+  overlay.innerHTML=`
+    <div style="background:var(--surface);width:100%;max-height:92dvh;border-radius:22px 22px 0 0;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 -8px 40px rgba(0,0,0,.3)">
+      <div style="display:flex;justify-content:center;padding:10px 0 0;flex-shrink:0">
+        <div style="width:40px;height:4px;background:rgba(0,0,0,.15);border-radius:2px"></div>
+      </div>
+      <div style="flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between;padding:0.875rem 1.25rem 0.75rem;border-bottom:1px solid var(--border2);gap:12px">
         <div>
-          <div class="mtitle">Email Report Ready</div>
-          <div class="msub-info">Review and send — or copy to paste into your email client</div>
+          <div style="font-size:16px;font-weight:600">Email Report Ready</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:3px">Review and send — or copy to paste into your email client</div>
         </div>
-        <button class="mclose" onclick="document.getElementById('email-report-modal').style.display='none'">&#x2715;</button>
+        <button onclick="document.getElementById('email-report-modal').remove()" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid var(--border);background:transparent;cursor:pointer;font-size:15px;color:var(--text2);flex-shrink:0">&#x2715;</button>
       </div>
-      <div class="frow" style="margin-bottom:0">
-        <div class="field"><label>To</label><input type="email" id="em-to" value="${to}" placeholder="recipient@example.com"></div>
-        <div class="field"><label>CC <span style="font-weight:400;color:var(--text3)">(optional)</span></label><input type="email" id="em-cc" value="${cc}" placeholder="cc@example.com"></div>
+      <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:1rem 1.25rem">
+        <div style="display:flex;gap:10px;margin-bottom:0">
+          <div class="field" style="flex:1"><label>To</label><input type="email" id="em-to" value="${safeTo}" placeholder="recipient@example.com"></div>
+          <div class="field" style="flex:1"><label>CC <span style="font-weight:400;color:var(--text3)">(optional)</span></label><input type="email" id="em-cc" value="${safeCc}" placeholder="cc@example.com"></div>
+        </div>
+        <div class="field"><label>Subject</label><input type="text" id="email-subject" value="${safeSubject}"></div>
+        <div class="field"><label>Email body</label>
+          <textarea id="email-body" style="height:220px;font-family:var(--mono);font-size:12px;line-height:1.6">${safeBody}</textarea>
+        </div>
       </div>
-      <div class="field">
-        <label>Subject</label>
-        <input type="text" id="email-subject" value="${subject.replace(/"/g,'&quot;')}">
-      </div>
-      <div class="field">
-        <label>Email body</label>
-        <textarea id="email-body" style="height:240px;font-family:var(--mono);font-size:12px;line-height:1.6">${body.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
-      </div>
-      <div class="mfooter" style="gap:8px">
-        <button class="btn" onclick="document.getElementById('email-report-modal').style.display='none'">Cancel</button>
-        <button class="btn" onclick="navigator.clipboard.writeText(document.getElementById('email-body').value);showToast('Copied!')">Copy body</button>
-        <button class="btn btn-p" onclick="
+      <div style="flex-shrink:0;display:flex;gap:8px;padding:0.75rem 1.25rem max(1rem,env(safe-area-inset-bottom));border-top:1px solid var(--border2)">
+        <button class="btn" onclick="document.getElementById('email-report-modal').remove()" style="flex:1">Cancel</button>
+        <button class="btn" onclick="navigator.clipboard.writeText(document.getElementById('email-body').value);showToast('Copied!')" style="flex:1">Copy body</button>
+        <button class="btn btn-p" onclick="(function(){
           const toVal=document.getElementById('em-to').value;
           const ccVal=document.getElementById('em-cc').value;
           const s=document.getElementById('email-subject').value;
@@ -2825,13 +2834,14 @@ function showEmailModal(subject, body, to='', cc='', suburb=''){
           let m='mailto:'+encodeURIComponent(toVal)+'?';
           if(ccVal)m+='cc='+encodeURIComponent(ccVal)+'&';
           m+='subject='+encodeURIComponent(s)+'&body='+encodeURIComponent(b);
-          recordEmailSent('${suburb.replace(/'/g,"\\'")}', toVal, ccVal, s);
-          document.getElementById('email-report-modal').style.display='none';
-          window.open(m);
-        ">&#9993; Open in mail app</button>
+          recordEmailSent('${safeSuburb}',toVal,ccVal,s);
+          document.getElementById('email-report-modal').remove();
+          window.open(m,'_self');
+        })()" style="flex:2">&#9993; Open in mail app</button>
       </div>
     </div>`;
-  modal.style.display='flex';
+
+  document.body.appendChild(overlay);
 }
 
 function exportCSV(){
