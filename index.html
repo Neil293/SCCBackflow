@@ -20,7 +20,9 @@
 <script type="module">
 try {
   const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
-  const { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch, getDocs, enableMultiTabIndexedDbPersistence } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+  const { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
+          collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch, getDocs } =
+    await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
 
   const firebaseConfig = {
     apiKey: "AIzaSyCeQ2jjSHSaiskMTX86QVr2aG3UC2_QMKY",
@@ -32,13 +34,16 @@ try {
   };
 
   const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
 
-  // Enable offline persistence (new API)
+  // Use modern persistence API (Firebase 10+)
+  let db;
   try {
-    await enableMultiTabIndexedDbPersistence(db);
+    db = initializeFirestore(app, {
+      localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()})
+    });
   } catch(e) {
-    console.warn('Firebase offline persistence:', e.code);
+    // Fallback if already initialized
+    db = getFirestore(app);
   }
 
   // Expose to global scope
@@ -55,7 +60,6 @@ try {
   console.log('Firebase ready');
 } catch(err) {
   console.error('Firebase failed to load:', err);
-  // App still works without Firebase - localStorage is the fallback
 }
 </script>
 <style>
@@ -920,6 +924,12 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
           &#8595; Export CSV
         </button>
 
+        <!-- Force sync -->
+        <button onclick="forceSyncNow()" style="font-family:var(--sans);width:100%;padding:13px;font-size:14px;font-weight:500;border-radius:var(--r);border:1px solid rgba(26,77,110,.25);background:var(--accent-light);color:var(--accent);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M12 7A5 5 0 112 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M12 3v4h-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Force sync now
+        </button>
+
         <!-- Settings -->
         <div style="border-top:1px solid var(--border2);padding-top:1rem">
           <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:10px">Settings</div>
@@ -1150,6 +1160,7 @@ function getClients(){
 }
 function saveClients(clients){
   localStorage.setItem(CLIENTS_KEY,JSON.stringify(clients));
+  if(window._firebaseReady) syncToFirebase();
 }
 function getActiveClientId(){
   return localStorage.getItem(ACTIVE_CLIENT_KEY)||SCC_CLIENT_ID;
@@ -1369,6 +1380,7 @@ function save(){
 
 // ── Firebase sync ────────────────────────────────────────
 let _firestoreUnsubscribe=null;
+let _metaUnsubscribe=null;
 let _syncTimeout=null;
 
 function firestoreCollectionName(clientId){
@@ -1392,6 +1404,21 @@ function setSyncStatus(status){
   }
 }
 
+function forceSyncNow(){
+  if(!window._firebaseReady||!window._db){
+    showToast('Firebase not connected. Check your internet connection.');
+    return;
+  }
+  showToast('Syncing…');
+  // Push local data up
+  syncToFirebase();
+  // Restart listener to pull latest from Firestore
+  setTimeout(()=>{
+    startFirebaseListener();
+    showToast('Sync complete');
+  },2000);
+}
+
 function syncToFirebase(){
   if(!window._firebaseReady||!window._db) return;
   setSyncStatus('syncing');
@@ -1402,48 +1429,52 @@ function syncToFirebase(){
   _syncTimeout=setTimeout(async()=>{
     try{
       const batch=window._fbWriteBatch(db);
-      // Get existing Firestore docs for this client
+
+      // 1. Sync devices
       const colRef=window._fbCollection(db,colName);
       const existing=await window._fbGetDocs(colRef);
       const existingIds=new Set(existing.docs.map(d=>d.id));
       const currentIds=new Set(devices.map(d=>String(d.id)));
-      // Write all current devices
       devices.forEach(device=>{
-        const ref=window._fbDoc(db,colName,String(device.id));
-        batch.set(ref,device);
+        batch.set(window._fbDoc(db,colName,String(device.id)),device);
       });
-      // Delete removed devices
       existingIds.forEach(id=>{
-        if(!currentIds.has(id)){
-          batch.delete(window._fbDoc(db,colName,id));
-        }
+        if(!currentIds.has(id)) batch.delete(window._fbDoc(db,colName,id));
       });
+
+      // 2. Sync app-wide meta: users, clients, settings, templates
+      const metaRef=window._fbDoc(db,'ct_meta','app_data');
+      batch.set(metaRef,{
+        users: getUsers(),
+        clients: getClients(),
+        settings: getSettings(),
+        templates: getTemplates(),
+        updatedAt: Date.now()
+      });
+
       await batch.commit();
       setSyncStatus('synced');
     }catch(err){
       console.error('Firebase sync error:',err);
       setSyncStatus(navigator.onLine?'error':'offline');
     }
-  },800); // debounce 800ms so rapid edits batch together
+  },800);
 }
 
 function startFirebaseListener(){
   if(!window._firebaseReady||!window._db) return;
-  // Unsubscribe previous listener
   if(_firestoreUnsubscribe){_firestoreUnsubscribe();_firestoreUnsubscribe=null;}
   const clientId=getActiveClientId();
   const colName=firestoreCollectionName(clientId);
   setSyncStatus('syncing');
+
+  // Listen for device changes
   _firestoreUnsubscribe=window._fbOnSnapshot(
     window._fbCollection(window._db,colName),
     (snapshot)=>{
-      // Only apply remote changes if they differ from local
-      // (avoids overwriting mid-edit)
       const remoteDevices=snapshot.docs.map(d=>d.data());
       if(remoteDevices.length>0){
-        // Merge: remote is source of truth, but keep local if no remote
         devices=remoteDevices;
-        // Save to localStorage as cache
         const storageKey=deviceKeyForClient(clientId);
         try{localStorage.setItem(storageKey,JSON.stringify(devices));}catch(e){}
         populateSuburbFilter();
@@ -1458,6 +1489,28 @@ function startFirebaseListener(){
       console.error('Firestore listener error:',err);
       setSyncStatus(navigator.onLine?'error':'offline');
     }
+  );
+
+  // Listen for meta changes (users, clients, settings, templates)
+  if(_metaUnsubscribe){_metaUnsubscribe();_metaUnsubscribe=null;}
+  _metaUnsubscribe=window._fbOnSnapshot(
+    window._fbDoc(window._db,'ct_meta','app_data'),
+    (snap)=>{
+      if(!snap.exists()) return;
+      const data=snap.data();
+      // Only apply if remote is newer than local
+      const localTs=parseInt(localStorage.getItem('ct_meta_ts')||'0');
+      if(data.updatedAt&&data.updatedAt>localTs){
+        if(data.users) saveUsers(data.users);
+        if(data.clients) saveClients(data.clients);
+        if(data.settings) localStorage.setItem(SETTINGS_KEY,JSON.stringify(data.settings));
+        if(data.templates) localStorage.setItem(TEMPLATES_KEY,JSON.stringify(data.templates));
+        localStorage.setItem('ct_meta_ts',String(data.updatedAt));
+        updateClientUI();
+        renderClientSwitcher();
+      }
+    },
+    (err)=>console.error('Meta listener error:',err)
   );
 }
 
@@ -2075,8 +2128,9 @@ SUMMARY:
 This report was generated by {{tester_company}} using ComplyTrack.
 Please retain this record for compliance purposes.
 
+Note: This is a summary only. The full compliance report has been completed and recorded in BackflowID.
+
 Regards,
-{{tester_name}}
 {{tester_company}}
 {{tester_phone}}
 {{tester_email}}`
@@ -2085,11 +2139,15 @@ Regards,
 function getTemplates(){
   try{
     const s=JSON.parse(localStorage.getItem(TEMPLATES_KEY)||'null');
-    if(s&&s.length) return s;
+    if(s&&s.length){
+      // Always keep the first (default) template up to date
+      s[0]={...DEFAULT_TEMPLATE};
+      return s;
+    }
   }catch(e){}
   return [DEFAULT_TEMPLATE];
 }
-function saveTemplates(t){localStorage.setItem(TEMPLATES_KEY,JSON.stringify(t));}
+function saveTemplates(t){localStorage.setItem(TEMPLATES_KEY,JSON.stringify(t));if(window._firebaseReady) syncToFirebase();}
 
 function renderTemplatesTab(){
   const el=document.getElementById('reports-content');
@@ -2537,7 +2595,7 @@ const WIZ_FIELDS=[
 const SETTINGS_KEY='ct_settings_v1';
 function getSettings(){try{return JSON.parse(localStorage.getItem(SETTINGS_KEY))||{};}catch(e){return{};}}
 function getSetting(key,def=true){const s=getSettings();return key in s?s[key]:def;}
-function saveSetting(key,val){const s=getSettings();s[key]=val;localStorage.setItem(SETTINGS_KEY,JSON.stringify(s));}
+function saveSetting(key,val){const s=getSettings();s[key]=val;localStorage.setItem(SETTINGS_KEY,JSON.stringify(s));if(window._firebaseReady) syncToFirebase();}
 
 function loadSettingsCheckboxes(){
   const el=document.getElementById('setting-prompt-missing');
@@ -3033,6 +3091,7 @@ function getUsers(){
 
 function saveUsers(users){
   localStorage.setItem(USERS_KEY,JSON.stringify(users));
+  if(window._firebaseReady) syncToFirebase();
 }
 
 // ── Permissions system ─────────────────────────────────
