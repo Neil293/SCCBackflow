@@ -19,9 +19,8 @@
 <!-- Firebase SDK -->
 <script type="module">
 try {
-  const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
-  const { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
-          collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch, getDocs } =
+  const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+  const { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch, getDocs } =
     await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
 
   const firebaseConfig = {
@@ -33,20 +32,10 @@ try {
     appId: "1:464278358151:web:6a7619a2c4f5f0ed2cd022"
   };
 
-  const app = initializeApp(firebaseConfig);
+  // Avoid re-initializing if already done (e.g. hot reload)
+  const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-  // Use modern persistence API (Firebase 10+)
-  let db;
-  try {
-    db = initializeFirestore(app, {
-      localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()})
-    });
-  } catch(e) {
-    // Fallback if already initialized
-    db = getFirestore(app);
-  }
-
-  // Expose to global scope
   window._db = db;
   window._fbCollection = collection;
   window._fbDoc = doc;
@@ -57,9 +46,11 @@ try {
   window._fbGetDocs = getDocs;
   window._firebaseReady = true;
   window.dispatchEvent(new Event('firebase-ready'));
-  console.log('Firebase ready');
+  console.log('✅ Firebase ready');
 } catch(err) {
-  console.error('Firebase failed to load:', err);
+  console.error('❌ Firebase failed:', err);
+  window._firebaseError = err.message;
+  window.dispatchEvent(new Event('firebase-failed'));
 }
 </script>
 <style>
@@ -1406,8 +1397,10 @@ function setSyncStatus(status){
 
 function forceSyncNow(){
   if(!window._firebaseReady||!window._db){
-    showToast('Firebase not connected — check internet connection.');
+    const reason=window._firebaseError||'Firebase not loaded';
+    showToast('Not connected: '+reason);
     setSyncStatus('error');
+    alert('Firebase connection failed:\n\n'+reason+'\n\nMost likely cause: Firestore security rules are blocking access.\n\nGo to Firebase Console → Firestore → Rules and set:\nallow read, write: if true;');
     return;
   }
   setSyncStatus('syncing');
@@ -1562,6 +1555,12 @@ function startFirebaseListener(){
 window.addEventListener('firebase-ready',()=>{
   if(currentUser) startFirebaseListener();
   setSyncStatus('synced');
+});
+
+// Show error if Firebase failed to load
+window.addEventListener('firebase-failed',()=>{
+  setSyncStatus('error');
+  console.warn('Firebase unavailable:', window._firebaseError);
 });
 
 // Also handle online/offline for sync indicator
