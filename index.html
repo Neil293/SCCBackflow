@@ -472,9 +472,10 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
   </div>
   <div id="client-switcher" style="display:none;gap:6px;align-items:center;flex-shrink:0"></div>
   <!-- Sync status indicator -->
-  <div id="sync-indicator">
+  <div id="sync-indicator" style="display:flex;align-items:center;gap:5px;cursor:pointer">
     <div class="sync-dot" id="sync-dot"></div>
-    <span id="sync-label">Synced</span>
+    <span id="sync-label" style="font-size:11px;opacity:.8;white-space:nowrap">Synced</span>
+    <span id="sync-mode-label" style="display:none;font-size:9px;font-weight:700;letter-spacing:.04em;padding:2px 5px;border-radius:4px;white-space:nowrap"></span>
   </div>
   <!-- Desktop nav buttons -->
   <div class="nav-right" id="nav-right-desktop">
@@ -1413,9 +1414,9 @@ function setSyncStatus(status, detail){
   const indicator=document.getElementById('sync-indicator');
   const dot=document.getElementById('sync-dot');
   const label=document.getElementById('sync-label');
+  const modeEl=document.getElementById('sync-mode-label');
   if(!indicator) return;
   indicator.style.display='flex';
-  // Remove old click handler
   indicator.onclick=null;
   if(status==='synced'){
     dot.className='sync-dot'; label.textContent='Synced';
@@ -1429,9 +1430,26 @@ function setSyncStatus(status, detail){
     const msg=detail||'Unknown error';
     indicator.onclick=()=>ctConfirm(
       'Sync error:\n\n'+msg+'\n\nThis is usually caused by Firebase quota being exceeded. Quota resets daily — try again later, or upgrade to Firebase Blaze plan.',
-      ()=>{},
-      'Sync Error','OK',false
+      ()=>{},'Sync Error','OK',false
     );
+  }
+  // Show sync mode badge
+  if(modeEl){
+    const v=getSyncInterval();
+    const badges={
+      manual:  {text:'MANUAL', bg:'rgba(184,50,50,.25)',   color:'#ffaaaa'},
+      '10min': {text:'10 MIN', bg:'rgba(230,126,34,.25)',  color:'#ffd580'},
+      '1hour': {text:'1 HR',   bg:'rgba(100,180,100,.2)', color:'#90ee90'},
+    };
+    const b=badges[v];
+    if(b){
+      modeEl.textContent=b.text;
+      modeEl.style.background=b.bg;
+      modeEl.style.color=b.color;
+      modeEl.style.display='inline-block';
+    } else {
+      modeEl.style.display='none';
+    }
   }
 }
 
@@ -1516,6 +1534,8 @@ function syncIntervalUI(){
   if(statusEl){
     statusEl.textContent='Current: '+syncIntervalLabel(v)+(v==='manual'?' — use Force sync button to push changes':'');
   }
+  // Refresh nav bar badge
+  setSyncStatus(document.getElementById('sync-dot')&&document.getElementById('sync-dot').className.includes('syncing')?'syncing':document.getElementById('sync-dot')&&document.getElementById('sync-dot').className.includes('error')?'error':'synced');
   // Show/hide section for admins
   const sec=document.getElementById('sync-interval-section');
   if(sec) sec.style.display=can('manageUsers')?'block':'none';
