@@ -927,7 +927,7 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
         <!-- Force sync -->
         <button onclick="forceSyncNow()" style="font-family:var(--sans);width:100%;padding:13px;font-size:14px;font-weight:500;border-radius:var(--r);border:1px solid rgba(26,77,110,.25);background:var(--accent-light);color:var(--accent);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M12 7A5 5 0 112 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M12 3v4h-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Force sync now
+          Force sync — push all data to cloud
         </button>
 
         <!-- Settings -->
@@ -1409,14 +1409,47 @@ function forceSyncNow(){
     showToast('Firebase not connected. Check your internet connection.');
     return;
   }
-  showToast('Syncing…');
-  // Push local data up
-  syncToFirebase();
-  // Restart listener to pull latest from Firestore
-  setTimeout(()=>{
-    startFirebaseListener();
-    showToast('Sync complete');
-  },2000);
+  setSyncStatus('syncing');
+  showToast('Pushing data to cloud…');
+  // Bypass debounce — push immediately then restart listener
+  clearTimeout(_syncTimeout);
+  const clientId=getActiveClientId();
+  const colName=firestoreCollectionName(clientId);
+  const db=window._db;
+  (async()=>{
+    try{
+      const batch=window._fbWriteBatch(db);
+      // Devices
+      const colRef=window._fbCollection(db,colName);
+      const existing=await window._fbGetDocs(colRef);
+      const existingIds=new Set(existing.docs.map(d=>d.id));
+      const currentIds=new Set(devices.map(d=>String(d.id)));
+      devices.forEach(device=>{
+        batch.set(window._fbDoc(db,colName,String(device.id)),device);
+      });
+      existingIds.forEach(id=>{
+        if(!currentIds.has(id)) batch.delete(window._fbDoc(db,colName,id));
+      });
+      // Meta
+      const metaRef=window._fbDoc(db,'ct_meta','app_data');
+      batch.set(metaRef,{
+        users:getUsers(),
+        clients:getClients(),
+        settings:getSettings(),
+        templates:getTemplates(),
+        updatedAt:Date.now()
+      });
+      await batch.commit();
+      setSyncStatus('synced');
+      showToast('✓ Sync complete — data pushed to cloud');
+      // Restart listener to also pull any remote changes
+      startFirebaseListener();
+    }catch(err){
+      console.error('Force sync error:',err);
+      setSyncStatus(navigator.onLine?'error':'offline');
+      showToast('Sync failed: '+(err.message||'unknown error'));
+    }
+  })();
 }
 
 function syncToFirebase(){
