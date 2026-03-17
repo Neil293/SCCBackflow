@@ -1406,23 +1406,28 @@ function setSyncStatus(status){
 
 function forceSyncNow(){
   if(!window._firebaseReady||!window._db){
-    showToast('Firebase not connected. Check your internet connection.');
+    showToast('Firebase not connected — check internet connection.');
+    setSyncStatus('error');
     return;
   }
   setSyncStatus('syncing');
-  showToast('Pushing data to cloud…');
-  // Bypass debounce — push immediately then restart listener
-  clearTimeout(_syncTimeout);
+  showToast('Connecting to cloud…');
   const clientId=getActiveClientId();
   const colName=firestoreCollectionName(clientId);
   const db=window._db;
+  clearTimeout(_syncTimeout);
   (async()=>{
     try{
+      // Step 1: Test write with a single small doc first
+      const testRef=window._fbDoc(db,colName,'_ping');
+      await window._fbSetDoc(testRef,{ping:true,ts:Date.now()});
+
+      // Step 2: Full device sync
+      showToast('Syncing devices…');
       const batch=window._fbWriteBatch(db);
-      // Devices
       const colRef=window._fbCollection(db,colName);
       const existing=await window._fbGetDocs(colRef);
-      const existingIds=new Set(existing.docs.map(d=>d.id));
+      const existingIds=new Set(existing.docs.map(d=>d.id).filter(id=>id!=='_ping'));
       const currentIds=new Set(devices.map(d=>String(d.id)));
       devices.forEach(device=>{
         batch.set(window._fbDoc(db,colName,String(device.id)),device);
@@ -1430,24 +1435,30 @@ function forceSyncNow(){
       existingIds.forEach(id=>{
         if(!currentIds.has(id)) batch.delete(window._fbDoc(db,colName,id));
       });
-      // Meta
-      const metaRef=window._fbDoc(db,'ct_meta','app_data');
-      batch.set(metaRef,{
+      // Clean up ping
+      batch.delete(testRef);
+      await batch.commit();
+
+      // Step 3: Sync meta (users, clients, settings, templates)
+      showToast('Syncing settings & users…');
+      await window._fbSetDoc(window._fbDoc(db,'ct_meta','app_data'),{
         users:getUsers(),
         clients:getClients(),
         settings:getSettings(),
         templates:getTemplates(),
         updatedAt:Date.now()
       });
-      await batch.commit();
+
       setSyncStatus('synced');
-      showToast('✓ Sync complete — data pushed to cloud');
-      // Restart listener to also pull any remote changes
+      showToast('✓ All data synced to cloud');
       startFirebaseListener();
     }catch(err){
-      console.error('Force sync error:',err);
-      setSyncStatus(navigator.onLine?'error':'offline');
-      showToast('Sync failed: '+(err.message||'unknown error'));
+      console.error('Force sync failed:',err);
+      setSyncStatus('error');
+      // Show specific error to help diagnose
+      const msg=err.code?err.code:err.message||'unknown';
+      showToast('Sync failed: '+msg);
+      alert('Sync error detail:\n\n'+msg+'\n\nCheck Firestore security rules allow read/write.\nProject: complytrack-6ac7e');
     }
   })();
 }
