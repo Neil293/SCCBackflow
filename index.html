@@ -743,8 +743,9 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
     </div>
     <!-- Footer buttons -->
     <div style="flex-shrink:0;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:0.75rem 1.25rem max(1rem,env(safe-area-inset-bottom));border-top:1px solid var(--border2)">
-      <button id="btn-delete-device" onclick="deleteDevice()" style="font-family:var(--sans);display:none;padding:9px 14px;font-size:13px;font-weight:500;border-radius:var(--r);border:1px solid rgba(184,50,50,.3);background:rgba(184,50,50,.06);color:var(--red);cursor:pointer">
-        🗑 Delete Device
+      <button id="btn-delete-device" onclick="deleteDevice()" style="font-family:var(--sans);display:none;padding:9px 16px;font-size:13px;font-weight:500;border-radius:var(--r);border:1px solid rgba(184,50,50,.25);background:rgba(184,50,50,.06);color:var(--red);cursor:pointer;display:none;align-items:center;gap:6px;white-space:nowrap;letter-spacing:.01em">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1.5 3h10M4.5 3V2a1 1 0 011-1h2a1 1 0 011 1v1M5 6v4M8 6v4M2.5 3l.7 8a1 1 0 001 .9h4.6a1 1 0 001-.9l.7-8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Delete Device
       </button>
       <div style="display:flex;gap:8px;margin-left:auto">
         <button class="btn" onclick="closeModal()">Cancel</button>
@@ -1934,7 +1935,7 @@ function openDevice(id){
   document.body.classList.add('modal-open');
   // Show delete button for admins only
   const delBtn=document.getElementById('btn-delete-device');
-  if(delBtn) delBtn.style.display=can('manageUsers')?'block':'none';
+  if(delBtn) delBtn.style.display=can('manageUsers')?'flex':'none';
   setTimeout(_forceModalWidth,10);
   const missing=getMissingFields(d);
   if(missing.length>0 && getSetting('promptMissing',true)){
