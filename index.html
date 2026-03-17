@@ -933,6 +933,19 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
           Force sync — push all data to cloud
         </button>
 
+        <!-- Sync interval — admin only -->
+        <div id="sync-interval-section" style="display:none;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:12px;margin-top:2px">
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">Auto-sync frequency</div>
+          <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Controls how often data is automatically pushed to the cloud. Use Manual while testing to avoid exceeding Firebase quota.</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" id="sync-interval-btns">
+            <button onclick="setSyncInterval('manual')" data-interval="manual" style="font-family:var(--sans);padding:9px 8px;font-size:13px;font-weight:500;border-radius:8px;border:2px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer">Manual only</button>
+            <button onclick="setSyncInterval('10min')" data-interval="10min" style="font-family:var(--sans);padding:9px 8px;font-size:13px;font-weight:500;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer">Every 10 min</button>
+            <button onclick="setSyncInterval('1hour')" data-interval="1hour" style="font-family:var(--sans);padding:9px 8px;font-size:13px;font-weight:500;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer">Every hour</button>
+            <button onclick="setSyncInterval('onsave')" data-interval="onsave" style="font-family:var(--sans);padding:9px 8px;font-size:13px;font-weight:500;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer">On every save</button>
+          </div>
+          <div id="sync-interval-status" style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center"></div>
+        </div>
+
         <!-- Settings -->
         <div style="border-top:1px solid var(--border2);padding-top:1rem">
           <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:10px">Settings</div>
@@ -1169,7 +1182,7 @@ function getClients(){
 }
 function saveClients(clients){
   localStorage.setItem(CLIENTS_KEY,JSON.stringify(clients));
-  if(window._firebaseReady) syncToFirebase();
+  maybeSyncToFirebase();
 }
 function getActiveClientId(){
   return localStorage.getItem(ACTIVE_CLIENT_KEY)||SCC_CLIENT_ID;
@@ -1384,7 +1397,7 @@ function save(){
   const storageKey=deviceKeyForClient(getActiveClientId());
   try{localStorage.setItem(storageKey,JSON.stringify(devices));}catch(e){}
   // Also sync to Firebase if available
-  if(window._firebaseReady) syncToFirebase();
+  maybeSyncToFirebase();
 }
 
 // ── Firebase sync ────────────────────────────────────────
@@ -1463,6 +1476,72 @@ function forceSyncNow(){
   })();
 }
 
+const SYNC_INTERVAL_KEY='ct_sync_interval_v1';
+let _autoSyncTimer=null;
+
+function getSyncInterval(){
+  return localStorage.getItem(SYNC_INTERVAL_KEY)||'onsave';
+}
+
+function setSyncInterval(interval){
+  localStorage.setItem(SYNC_INTERVAL_KEY,interval);
+  clearInterval(_autoSyncTimer);
+  _autoSyncTimer=null;
+  // Start timer if interval-based
+  const ms={'10min':10*60*1000,'1hour':60*60*1000}[interval];
+  if(ms){
+    _autoSyncTimer=setInterval(()=>{
+      maybeSyncToFirebase();
+    },ms);
+  }
+  syncIntervalUI();
+  showToast('Sync set to: '+syncIntervalLabel(interval));
+}
+
+function syncIntervalLabel(v){
+  return{manual:'Manual only','10min':'Every 10 min','1hour':'Every hour',onsave:'On every save'}[v]||v;
+}
+
+function syncIntervalUI(){
+  const v=getSyncInterval();
+  const btns=document.querySelectorAll('#sync-interval-btns button');
+  btns.forEach(b=>{
+    const active=b.dataset.interval===v;
+    b.style.border=active?'2px solid var(--accent)':'1px solid var(--border)';
+    b.style.background=active?'var(--accent)':'var(--surface)';
+    b.style.color=active?'#fff':'var(--text2)';
+    b.style.fontWeight=active?'600':'500';
+  });
+  const statusEl=document.getElementById('sync-interval-status');
+  if(statusEl){
+    statusEl.textContent='Current: '+syncIntervalLabel(v)+(v==='manual'?' — use Force sync button to push changes':'');
+  }
+  // Show/hide section for admins
+  const sec=document.getElementById('sync-interval-section');
+  if(sec) sec.style.display=can('manageUsers')?'block':'none';
+}
+
+// Master sync gate — respects interval setting
+function maybeSyncToFirebase(){
+  if(!window._firebaseReady) return;
+  const v=getSyncInterval();
+  if(v==='onsave') syncToFirebase();
+  // manual/10min/1hour: don't auto-sync on save
+}
+
+// Initialise auto-sync timer on login
+function initSyncInterval(){
+  const v=getSyncInterval();
+  clearInterval(_autoSyncTimer);
+  _autoSyncTimer=null;
+  const ms={'10min':10*60*1000,'1hour':60*60*1000}[v];
+  if(ms){
+    _autoSyncTimer=setInterval(()=>{
+      maybeSyncToFirebase();
+    },ms);
+  }
+}
+
 function syncToFirebase(){
   if(!window._firebaseReady||!window._db) return;
   setSyncStatus('syncing');
@@ -1539,7 +1618,10 @@ function startFirebaseListener(){
 
 // Start listener when Firebase is ready
 window.addEventListener('firebase-ready',()=>{
-  if(currentUser) startFirebaseListener();
+  if(currentUser){
+    startFirebaseListener();
+    initSyncInterval();
+  }
   setSyncStatus('synced');
 });
 
@@ -1552,7 +1634,7 @@ window.addEventListener('firebase-failed',()=>{
 // Also handle online/offline for sync indicator
 window.addEventListener('online', ()=>{
   setSyncStatus('syncing');
-  if(window._firebaseReady) syncToFirebase();
+  maybeSyncToFirebase();
 });
 window.addEventListener('offline',()=>setSyncStatus('offline'));
 
@@ -2176,7 +2258,7 @@ function getTemplates(){
   }catch(e){}
   return [DEFAULT_TEMPLATE];
 }
-function saveTemplates(t){localStorage.setItem(TEMPLATES_KEY,JSON.stringify(t));if(window._firebaseReady) syncToFirebase();}
+function saveTemplates(t){localStorage.setItem(TEMPLATES_KEY,JSON.stringify(t));maybeSyncToFirebase();}
 
 function renderDeviceListReport(type){
   const el=document.getElementById('reports-content');
@@ -2712,13 +2794,14 @@ const WIZ_FIELDS=[
 const SETTINGS_KEY='ct_settings_v1';
 function getSettings(){try{return JSON.parse(localStorage.getItem(SETTINGS_KEY))||{};}catch(e){return{};}}
 function getSetting(key,def=true){const s=getSettings();return key in s?s[key]:def;}
-function saveSetting(key,val){const s=getSettings();s[key]=val;localStorage.setItem(SETTINGS_KEY,JSON.stringify(s));if(window._firebaseReady) syncToFirebase();}
+function saveSetting(key,val){const s=getSettings();s[key]=val;localStorage.setItem(SETTINGS_KEY,JSON.stringify(s));maybeSyncToFirebase();}
 
 function loadSettingsCheckboxes(){
   const el=document.getElementById('setting-prompt-missing');
   if(el) el.checked=getSetting('promptMissing',true);
   const el2=document.getElementById('setting-show-decommissioned');
   if(el2) el2.checked=getSetting('showDecommissioned',true);
+  syncIntervalUI();
 }
 
 function getMissingFields(d){
@@ -3208,7 +3291,7 @@ function getUsers(){
 
 function saveUsers(users){
   localStorage.setItem(USERS_KEY,JSON.stringify(users));
-  if(window._firebaseReady) syncToFirebase();
+  maybeSyncToFirebase();
 }
 
 // ── Permissions system ─────────────────────────────────
@@ -3436,6 +3519,7 @@ function showApp(){
   // Start Firebase real-time listener
   if(window._firebaseReady) startFirebaseListener();
   else window.addEventListener('firebase-ready',()=>startFirebaseListener(),{once:true});
+  initSyncInterval();
 }
 
 // ── Settings Modal ───────────────────────────────────────
