@@ -591,6 +591,10 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
         <circle cx="7" cy="7" r="2" fill="white"/>
       </svg>
     </button>
+    <!-- QR lookup button -->
+    <button onclick="openQRLookup()" title="Scan Backflow ID" style="font-family:var(--sans);flex-shrink:0;width:32px;height:32px;border-radius:50%;border:1px solid rgba(0,0,0,.12);background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;color:var(--accent)">
+      <svg width="15" height="15" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="4" height="4" rx=".5" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="1" width="4" height="4" rx=".5" stroke="currentColor" stroke-width="1.3"/><rect x="1" y="9" width="4" height="4" rx=".5" stroke="currentColor" stroke-width="1.3"/><rect x="2.5" y="2.5" width="1" height="1" fill="currentColor"/><rect x="10.5" y="2.5" width="1" height="1" fill="currentColor"/><rect x="2.5" y="10.5" width="1" height="1" fill="currentColor"/><path d="M9 9h1v1H9zM11 9h1v1h-1zM9 11h1v1H9zM11 11h1v1h-1z" fill="currentColor"/></svg>
+    </button>
     <div id="mob-month-pills" style="display:flex;gap:5px;flex-shrink:0"></div>
     <span id="mob-tcount" style="font-size:12px;color:var(--text3);white-space:nowrap;flex-shrink:0;margin-left:auto;padding-left:4px"></span>
   </div>
@@ -4738,6 +4742,44 @@ async function openQRScannerWiz(){
   openQRScanner('wiz');
 }
 
+// ── QR Lookup (scan to find device) ─────────────────────
+function openQRLookup(){
+  // Reuse QR scanner but with 'lookup' target
+  openQRScanner('lookup');
+  // Update scanner title
+  const title=document.querySelector('#qr-modal [style*="font-weight:600"]');
+  if(title) title.textContent='Scan Backflow ID to Find Device';
+}
+
+function handleQRLookupResult(scanned){
+  // Find all devices matching this backflowId
+  const val=scanned.trim();
+  const matches=devices.filter(d=>d.backflowId&&d.backflowId.trim()===val);
+
+  closeQRScanner();
+
+  if(matches.length===0){
+    // Not found — offer to copy the value
+    ctConfirm(
+      `No device found with Backflow ID:\n\n"${val.slice(0,80)}${val.length>80?'…':''}"\n\nThis ID is not assigned to any device yet.`,
+      ()=>{ navigator.clipboard&&navigator.clipboard.writeText(val); showToast('ID copied to clipboard'); },
+      'Not Found', 'Copy ID', false
+    );
+  } else if(matches.length===1){
+    // Exactly one match — open it
+    showToast('✓ Device found');
+    setTimeout(()=>openDevice(matches[0].id), 200);
+  } else {
+    // Multiple matches — show error with affected devices
+    const list=matches.map(d=>`• ${d.make} ${d.model} — ${d.suburb} — ${d.location.slice(0,50)}`).join('\n');
+    ctConfirm(
+      `⚠️ This Backflow ID is assigned to ${matches.length} devices:\n\n${list}\n\nEach device should have a unique Backflow ID. Please edit the affected devices to fix this.`,
+      ()=>{},
+      'Duplicate Backflow ID', 'OK', true
+    );
+  }
+}
+
 async function openQRScanner(target='edit'){
   document.getElementById('qr-modal').style.display='flex';
   document.getElementById('qr-status').textContent='Starting camera…';
@@ -4804,17 +4846,23 @@ function startScanning(){
 }
 
 function handleQRResult(raw){
-  // Use whatever is scanned — URL, text, ID — put it directly into the field
   let value=raw.trim();
+  const target=document.getElementById('qr-modal').dataset.target||'edit';
 
-  // Success!
+  // Lookup mode — find device by backflowId
+  if(target==='lookup'){
+    document.getElementById('qr-status').innerHTML='<span style="color:var(--green);font-weight:600">✓ Scanned! Searching…</span>';
+    document.getElementById('qr-video').style.outline='3px solid var(--green)';
+    setTimeout(()=>handleQRLookupResult(value), 600);
+    return;
+  }
+
+  // Fill mode — put value into field
   document.getElementById('qr-status').innerHTML='<span style="color:var(--green);font-weight:600">✓ Scanned!</span>';
   document.getElementById('qr-video').style.outline='3px solid var(--green)';
-
-  const target=document.getElementById('qr-modal').dataset.target||'edit';
   setTimeout(()=>{
-    const fieldId = target==='wiz' ? 'wiz-input' : 'e-backflowid';
-    const field = document.getElementById(fieldId);
+    const fieldId=target==='wiz'?'wiz-input':'e-backflowid';
+    const field=document.getElementById(fieldId);
     if(field) field.value=value;
     if(fieldId==='e-backflowid') updateBfidGoBtn();
     closeQRScanner();
@@ -4824,10 +4872,14 @@ function handleQRResult(raw){
 
 function applyManualBackflowId(){
   const val=document.getElementById('qr-manual').value.trim();
-  if(!val){showToast('Please enter a Backflow ID.');return;}
+  if(!val){showToast('Please enter a value.');return;}
   const target=document.getElementById('qr-modal').dataset.target||'edit';
-  const fieldId = target==='wiz' ? 'wiz-input' : 'e-backflowid';
-  const field = document.getElementById(fieldId);
+  if(target==='lookup'){
+    handleQRLookupResult(val);
+    return;
+  }
+  const fieldId=target==='wiz'?'wiz-input':'e-backflowid';
+  const field=document.getElementById(fieldId);
   if(field) field.value=val;
   if(fieldId==='e-backflowid') updateBfidGoBtn();
   closeQRScanner();
