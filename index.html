@@ -973,6 +973,13 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
               <div style="font-size:12px;color:var(--text3);margin-top:2px">Include decommissioned devices in the device list</div>
             </div>
           </label>
+          <label style="display:flex;align-items:center;gap:10px;padding:12px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface2);cursor:pointer;margin-top:8px">
+            <input type="checkbox" id="setting-follow-backflow-url" onchange="saveSetting('followBackflowUrl',this.checked)" style="width:18px;height:18px;accent-color:var(--accent);flex-shrink:0">
+            <div>
+              <div style="font-size:14px;font-weight:500;color:var(--text)">Follow Backflow ID link after recording</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:2px">Automatically open the Backflow ID URL when you tap Pass, Fail, Repaired or Decommissioned</div>
+            </div>
+          </label>
         </div>
 
         <!-- Backup -->
@@ -2913,6 +2920,14 @@ function saveTest(){
     if(!last||last.date!==entry.date||last.result!==entry.result){d.testLog.push(entry);}
   }
   save();closeModal();populateSuburbFilter();render();showToast('Saved.');
+  // Follow backflowId URL if setting enabled and result was a test action
+  const bfId=d.backflowId&&d.backflowId.trim();
+  const testResult=d.testResult;
+  const isTestAction=['Pass','Fail','Repaired','Decommissioned'].includes(testResult);
+  if(bfId&&isTestAction&&getSetting('followBackflowUrl',false)){
+    const url=bfId.startsWith('http')?bfId:'https://www.google.com/search?q='+encodeURIComponent(bfId);
+    setTimeout(()=>window.open(url,'_blank'),400);
+  }
 }
 
 // ── Wizard ──────────────────────────────────────────────
@@ -2940,6 +2955,8 @@ function loadSettingsCheckboxes(){
   if(el) el.checked=getSetting('promptMissing',true);
   const el2=document.getElementById('setting-show-decommissioned');
   if(el2) el2.checked=getSetting('showDecommissioned',true);
+  const el3=document.getElementById('setting-follow-backflow-url');
+  if(el3) el3.checked=getSetting('followBackflowUrl',false);
   syncIntervalUI();
 }
 
