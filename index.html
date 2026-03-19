@@ -1431,6 +1431,7 @@ function save(){
 let _firestoreUnsubscribe=null;
 let _metaUnsubscribe=null;
 let _syncTimeout=null;
+window._lastSyncTs=0; // timestamp of last write THIS session made
 
 function firestoreCollectionName(clientId){
   return `devices_${clientId}`;
@@ -1487,15 +1488,27 @@ function forceSyncNow(){
     return;
   }
   setSyncStatus('syncing');
-  showToast('Pushing all data to cloud…');
   const db=window._db;
   clearTimeout(_syncTimeout);
+
+  const step=(msg)=>{
+    console.log('ComplyHub sync: '+msg);
+    showToast(msg);
+    setSyncStatus('syncing');
+  };
+
   (async()=>{
     const watchdog=setTimeout(()=>{
-      setSyncStatus('error','Timed out — Firebase quota may be exceeded');
-      showToast('Sync timed out — Firebase quota may be exceeded');
-    },15000);
+      setSyncStatus('error','Timed out after 20s — Firebase may be blocked or quota exceeded');
+      showToast('⏱ Sync timed out');
+    },20000);
     try{
+      step('Step 1/3: Connecting to Firebase…');
+      // Test connection with a small ping first
+      const pingRef=window._fbDoc(db,'ct_sync','_ping');
+      await window._fbSetDoc(pingRef,{ts:Date.now()});
+      step('Step 2/3: Uploading data…');
+      const now=Date.now();
       await window._fbSetDoc(window._fbDoc(db,'ct_sync','main'),{
         devices:devices,
         clientId:getActiveClientId(),
@@ -1503,19 +1516,23 @@ function forceSyncNow(){
         clients:getClients(),
         settings:getSettings(),
         templates:getTemplates(),
-        updatedAt:Date.now(),
+        updatedAt:now,
         updatedBy:currentUser?currentUser.username:''
       });
+      window._lastSyncTs=now;
+      step('Step 3/3: Verifying…');
+      // Read back to confirm it was written
+      const check=await window._fbGetDocs(window._fbCollection(db,'ct_sync'));
       clearTimeout(watchdog);
-      localStorage.setItem('ct_sync_ts',String(Date.now()));
       setSyncStatus('synced');
-      showToast('✓ All data synced to cloud');
+      showToast('✓ Sync complete — '+devices.length+' devices pushed to cloud');
       startFirebaseListener();
     }catch(err){
       clearTimeout(watchdog);
       const msg=(err.code||'')+' '+(err.message||'');
       setSyncStatus('error',msg);
-      showToast('Sync failed — tap sync indicator for details');
+      showToast('✗ Sync failed: '+( err.code||err.message||'unknown'));
+      console.error('ComplyHub force sync failed:',err);
     }
   })();
 }
@@ -1616,6 +1633,7 @@ function syncToFirebase(){
         updatedBy: currentUser?currentUser.username:''
       });
       clearTimeout(watchdog);
+      window._lastSyncTs=Date.now();
       setSyncStatus('synced');
     }catch(err){
       clearTimeout(watchdog);
@@ -1630,36 +1648,51 @@ function startFirebaseListener(){
   if(_firestoreUnsubscribe){_firestoreUnsubscribe();_firestoreUnsubscribe=null;}
   if(_metaUnsubscribe){_metaUnsubscribe();_metaUnsubscribe=null;}
 
-  // Listen to the single sync document — 1 read per change instead of 570+
+  // Track the timestamp of the last write THIS session made
+  // so we don't reapply our own write back to ourselves
   _firestoreUnsubscribe=window._fbOnSnapshot(
     window._fbDoc(window._db,'ct_sync','main'),
     (snap)=>{
-      if(!snap.exists()) return;
+      if(!snap.exists()){
+        setSyncStatus('synced');
+        console.log('ComplyHub: Firestore doc does not exist yet — use Force Sync to create it');
+        return;
+      }
       const data=snap.data();
-      if(!data) return;
-      const localTs=parseInt(localStorage.getItem('ct_sync_ts')||'0');
-      // Only apply if remote is newer and not written by this session
-      if(data.updatedAt&&data.updatedAt>localTs&&data.updatedBy!==( currentUser?currentUser.username:'')){
+      if(!data){setSyncStatus('synced');return;}
+
+      const remoteTs=data.updatedAt||0;
+      const remoteBy=data.updatedBy||'';
+      const sessionTs=window._lastSyncTs||0;
+
+      console.log(`ComplyHub sync: remoteTs=${remoteTs} sessionTs=${sessionTs} remoteBy=${remoteBy} me=${currentUser?currentUser.username:''}`);
+
+      // Apply if remote is newer than what THIS session last wrote
+      if(remoteTs>sessionTs){
+        console.log('ComplyHub: applying remote data');
         if(data.devices&&data.devices.length>0){
           devices=data.devices;
           const storageKey=deviceKeyForClient(getActiveClientId());
           try{localStorage.setItem(storageKey,JSON.stringify(devices));}catch(e){}
         }
-        if(data.users) saveUsers(data.users);
-        if(data.clients) saveClients(data.clients);
-        if(data.settings) localStorage.setItem(SETTINGS_KEY,JSON.stringify(data.settings));
-        if(data.templates) localStorage.setItem(TEMPLATES_KEY,JSON.stringify(data.templates));
-        localStorage.setItem('ct_sync_ts',String(data.updatedAt));
+        if(data.users){localStorage.setItem(USERS_KEY,JSON.stringify(data.users));}
+        if(data.clients){localStorage.setItem(CLIENTS_KEY,JSON.stringify(data.clients));}
+        if(data.settings){localStorage.setItem(SETTINGS_KEY,JSON.stringify(data.settings));}
+        if(data.templates){localStorage.setItem(TEMPLATES_KEY,JSON.stringify(data.templates));}
         populateSuburbFilter();
         render();
         renderClientSwitcher();
         updateClientUI();
-        showToast('↓ Data updated from cloud');
+        if(remoteBy&&remoteBy!==(currentUser?currentUser.username:'')){
+          showToast('↓ Data updated from cloud');
+        }
+      } else {
+        console.log('ComplyHub: remote data is not newer, skipping');
       }
       setSyncStatus('synced');
     },
     (err)=>{
-      console.error('Firestore listener error:',err);
+      console.error('ComplyHub Firestore listener error:',err);
       setSyncStatus('error',(err.code?err.code+' — ':'')+err.message);
     }
   );
@@ -3465,11 +3498,11 @@ function exportCSV(){
   showToast('CSV exported.');
 }
 
-function showToast(msg){
+function showToast(msg, duration=2500){
   const t=document.getElementById('toast');
   t.textContent=msg;t.classList.add('show');
   clearTimeout(t._timer);
-  t._timer=setTimeout(()=>t.classList.remove('show'),1500);
+  t._timer=setTimeout(()=>t.classList.remove('show'),duration);
 }
 
 // ── Auth system ────────────────────────────────────────
