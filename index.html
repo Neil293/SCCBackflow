@@ -4692,27 +4692,11 @@ function startScanning(){
 }
 
 function handleQRResult(raw){
-  // Extract just text — strip URLs if it's a maps link, otherwise use as-is
+  // Use whatever is scanned — URL, text, ID — put it directly into the field
   let value=raw.trim();
-  // If it looks like a URL, try to extract a meaningful ID from it
-  // e.g. if someone has encoded "BF-1234" directly — use it
-  // if it's a google maps URL, don't use it (wrong QR code)
-  if(value.startsWith('http')){
-    // Try to extract backflow ID pattern from URL params
-    try{
-      const url=new URL(value);
-      const id=url.searchParams.get('backflowId')||url.searchParams.get('id')||url.searchParams.get('q');
-      if(id)value=id;
-      else{
-        document.getElementById('qr-status').textContent='⚠ That looks like a Maps QR — try a device label QR';
-        qrTimer=setTimeout(()=>startScanning(),2000);
-        return;
-      }
-    }catch(e){}
-  }
 
   // Success!
-  document.getElementById('qr-status').innerHTML='<span style="color:var(--green);font-weight:600">✓ Scanned: '+value+'</span>';
+  document.getElementById('qr-status').innerHTML='<span style="color:var(--green);font-weight:600">✓ Scanned!</span>';
   document.getElementById('qr-video').style.outline='3px solid var(--green)';
 
   const target=document.getElementById('qr-modal').dataset.target||'edit';
