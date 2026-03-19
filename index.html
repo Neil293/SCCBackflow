@@ -466,7 +466,7 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
     </div>
     <div style="display:flex;flex-direction:column;gap:0;line-height:1;min-width:0">
       <span class="nav-full" id="nav-client-name" style="font-size:15px;font-weight:700;letter-spacing:-0.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">ComplyTrack</span>
-      <span class="nav-full" style="font-size:9px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;opacity:0.55">Compliance Management</span>
+      <span class="nav-full" style="font-size:9px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;opacity:0.55"><span id="nav-client-sub">Compliance Management</span></span>
     </div>
     <span class="nav-short" style="display:none;font-weight:700;font-size:14px">ComplyTrack</span>
   </div>
@@ -498,9 +498,13 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
 <div id="mobile-menu" style="display:none;position:fixed;top:52px;left:0;right:0;background:var(--accent);z-index:49;border-bottom:1px solid rgba(255,255,255,.15);box-shadow:0 8px 24px rgba(0,0,0,.3);max-height:calc(100dvh - 52px);overflow-y:auto">
 
   <!-- User info -->
-  <div style="padding:10px 14px 8px;border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:space-between">
-    <div id="mob-menu-user" style="font-size:12px;color:rgba(255,255,255,.7)"></div>
-    <button onclick="doLogout()" style="font-family:var(--sans);font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);cursor:pointer">Sign out</button>
+  <div style="padding:10px 14px 8px;border-bottom:1px solid rgba(255,255,255,.12)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div id="mob-menu-user" style="font-size:12px;color:rgba(255,255,255,.7)"></div>
+      <button onclick="doLogout()" style="font-family:var(--sans);font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);cursor:pointer;flex-shrink:0">Sign out</button>
+    </div>
+    <div id="mob-menu-client" style="font-size:11px;color:rgba(255,255,255,.45);margin-bottom:5px"></div>
+    <div id="mob-client-switcher" style="display:none;flex-wrap:wrap;gap:5px"></div>
   </div>
 
   <!-- Search -->
@@ -1691,12 +1695,16 @@ function switchClient(id){
 
 function updateClientUI(){
   const client=getActiveClient();
+  // Always keep ComplyTrack as the brand name
   const brand=document.getElementById('nav-client-name');
-  if(brand) brand.textContent=client.abbr||client.name;
+  if(brand) brand.textContent='ComplyTrack';
+  // Show client name in the subtitle line
+  const sub=document.getElementById('nav-client-sub');
+  if(sub) sub.textContent=client.abbr||client.name;
   document.documentElement.style.setProperty('--accent',client.colour||'#1a4d6e');
-  const sub=document.querySelector('.page-hdr p');
+  const pageSub=document.querySelector('.page-hdr p');
   const ci=getClientInfo();
-  if(sub) sub.textContent=(ci.org||client.name)+(ci.dept?' — '+ci.dept:'');
+  if(pageSub) pageSub.textContent=(ci.org||client.name)+(ci.dept?' — '+ci.dept:'');
   renderClientSwitcher();
 }
 
@@ -2028,6 +2036,34 @@ function render(){
   ab.innerHTML='';
 }
 
+// Extract short unique code from a Backflow ID (URL or plain text)
+// e.g. https://QR2id.net/?YCEMJC4BN → YCEM-JC4BN
+// e.g. BF-1234 → BF-1234 (unchanged)
+function extractBfCode(bfId){
+  if(!bfId) return '';
+  let code=bfId.trim();
+  // If it's a URL, extract the query string value
+  if(code.startsWith('http')){
+    try{
+      const u=new URL(code);
+      // Get first query param value (e.g. ?YCEMJC4BN or ?id=YCEMJC4BN)
+      const params=[...u.searchParams.entries()];
+      if(params.length>0){
+        // If first param has no value (e.g. ?YCEMJC4BN), use the key as the code
+        code=params[0][1]||params[0][0];
+      } else {
+        // Fallback: use last path segment or search string
+        code=u.search.replace('?','')||u.pathname.split('/').filter(Boolean).pop()||code;
+      }
+    }catch(e){}
+  }
+  // Format: insert a dash after every 4 chars if it looks like a raw alphanumeric code
+  if(/^[A-Z0-9]{6,}$/i.test(code)&&!code.includes('-')){
+    code=code.match(/.{1,4}/g).join('-');
+  }
+  return code.toUpperCase();
+}
+
 function deviceRow(d,hideSuburb){
   const url=mapsUrl(d);
   const hasGps=!!(d.lat&&d.lng);
@@ -2051,7 +2087,10 @@ function deviceRow(d,hideSuburb){
     <td><span class="mono" style="color:${d.backflowId?'var(--accent)':'var(--text3)'}">${d.backflowId||'—'}</span></td>
     <td><span class="loc-cell" title="${d.location}">${d.location}</span></td>
     <td>${d.scheduledMonth?`<span class="sched-month">${d.scheduledMonth}</span>`:'-'}</td>
-    <td style="font-size:12px;color:var(--text2)">${fmtDate(d.testDate)}</td>
+    <td style="font-size:12px;color:var(--text2)">
+      ${fmtDate(d.testDate)}
+      ${d.backflowId?`<div style="font-size:10px;font-family:var(--mono);color:var(--accent);font-weight:600;margin-top:2px;letter-spacing:.03em">${extractBfCode(d.backflowId)}</div>`:''}
+    </td>
     <td>${statusBadge(d)}</td>
     <td><div class="row-acts" onclick="event.stopPropagation()">
       <button class="rbtn" onclick="openDevice(${d.id})">${can('editDevices')?'Edit':'View'}</button>
@@ -3598,6 +3637,22 @@ function toggleMobileMenu(){
     if(currentUser){
       const u=document.getElementById('mob-menu-user');
       if(u) u.textContent=currentUser.name+' — '+currentUser.username;
+    }
+    // Show active client
+    const clientEl=document.getElementById('mob-menu-client');
+    if(clientEl){
+      const client=getActiveClient();
+      const clients=getClients();
+      clientEl.textContent='Client: '+(client.name||client.abbr);
+      // Render inline client switcher buttons if multiple clients
+      if(clients.length>1){
+        const switcher=document.getElementById('mob-client-switcher');
+        if(switcher){
+          const activeId=getActiveClientId();
+          switcher.innerHTML=clients.map(c=>`<button onclick="switchClient('${c.id}');toggleMobileMenu()" style="font-family:var(--sans);font-size:11px;padding:3px 10px;border-radius:20px;border:1px solid ${c.id===activeId?'rgba(255,255,255,.5)':'rgba(255,255,255,.2)'};background:${c.id===activeId?'rgba(255,255,255,.2)':'rgba(255,255,255,.07)'};color:${c.id===activeId?'#fff':'rgba(255,255,255,.65)'};cursor:pointer;white-space:nowrap;font-weight:${c.id===activeId?'700':'400'}">${c.abbr||c.name}</button>`).join('');
+          switcher.style.display='flex';
+        }
+      }
     }
     // Sync filter values from hidden inputs to mobile dropdowns
     const ms=document.getElementById('mob-search');
