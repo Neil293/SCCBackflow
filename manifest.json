@@ -1,7 +1,7 @@
 {
-  "name": "ComplyTrack",
-  "short_name": "ComplyTrack",
-  "description": "Compliance Management — Backflow Device Register",
+  "name": "ComplyHub",
+  "short_name": "ComplyHub",
+  "description": "ComplyHub \u2014 Compliance Management",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0d2d44",
@@ -15,6 +15,9 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["utilities", "business"],
+  "categories": [
+    "utilities",
+    "business"
+  ],
   "lang": "en-AU"
 }

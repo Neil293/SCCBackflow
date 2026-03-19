@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ComplyTrack</title>
+<title>ComplyHub</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1a4d6e">
@@ -399,7 +399,7 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
 <div id="login-screen">
   <div class="login-card">
     <div class="login-logo" style="width:auto;height:auto;background:none;border-radius:0;margin:0 auto 1.1rem;display:flex;flex-direction:column;align-items:center;gap:10px">
-      <!-- ComplyTrack Logo 5: Progress Ring -->
+      <!-- App Logo -->
       <svg width="80" height="80" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
         <!-- Outer subtle ring -->
         <circle cx="32" cy="32" r="28" stroke="rgba(26,77,110,0.12)" stroke-width="1.5"/>
@@ -425,7 +425,7 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
       </svg>
       <!-- Wordmark -->
       <div style="text-align:center">
-        <div style="font-size:22px;font-weight:700;letter-spacing:-0.03em;color:#1a2332;line-height:1">ComplyTrack</div>
+        <div style="font-size:22px;font-weight:700;letter-spacing:-0.03em;color:#1a2332;line-height:1">ComplyHub</div>
         <div style="font-size:10px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:#4a9fff;margin-top:4px">Compliance Management</div>
       </div>
     </div>
@@ -465,10 +465,10 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
       </svg>
     </div>
     <div style="display:flex;flex-direction:column;gap:0;line-height:1;min-width:0">
-      <span class="nav-full" id="nav-client-name" style="font-size:15px;font-weight:700;letter-spacing:-0.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">ComplyTrack</span>
+      <span class="nav-full" id="nav-client-name" style="font-size:15px;font-weight:700;letter-spacing:-0.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">ComplyHub</span>
       <span class="nav-full" style="font-size:9px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;opacity:0.55"><span id="nav-client-sub">Compliance Management</span></span>
     </div>
-    <span class="nav-short" style="display:none;font-weight:700;font-size:14px">ComplyTrack</span>
+    <span class="nav-short" style="display:none;font-weight:700;font-size:14px">ComplyHub</span>
   </div>
   <div id="client-switcher" style="display:none;gap:6px;align-items:center;flex-shrink:0"></div>
   <!-- Sync status indicator -->
@@ -659,7 +659,7 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
     <div id="empty" class="empty" style="display:none">No devices match your filters.</div>
   </div>
 </main>
-<footer>ComplyTrack &mdash; Data stored locally in your browser.</footer>
+<footer>ComplyHub &mdash; Data stored locally in your browser.</footer>
 </div><!-- end #app -->
 <div id="modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.55);z-index:500;align-items:flex-end;justify-content:center" onclick="bgClose(event)">
   <div id="modal-sheet" style="background:var(--surface);width:100%;height:96dvh;border-radius:22px 22px 0 0;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 -8px 40px rgba(0,0,0,.3)">
@@ -1166,7 +1166,7 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
   <div style="background:var(--surface);border-radius:18px;padding:1.5rem;max-width:340px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.3)">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:0.75rem">
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="10" fill="#fff3cd" stroke="#e6a817" stroke-width="1.5"/><path d="M11 7v5M11 15v.5" stroke="#e6a817" stroke-width="2" stroke-linecap="round"/></svg>
-      <div style="font-size:15px;font-weight:700;color:var(--text)" id="ct-confirm-title">ComplyTrack</div>
+      <div style="font-size:15px;font-weight:700;color:var(--text)" id="ct-confirm-title">ComplyHub</div>
     </div>
     <div style="font-size:14px;color:var(--text2);line-height:1.5;margin-bottom:1.25rem" id="ct-confirm-msg"></div>
     <div style="display:flex;gap:10px">
@@ -1187,6 +1187,9 @@ const MONTHS=['January','February','March','April','May','June','July','August',
 const CLIENTS_KEY='bf_clients_v1';
 const ACTIVE_CLIENT_KEY='bf_active_client_v1';
 const SCC_CLIENT_ID='scc';
+
+// ── App name — change this one line to rename the app everywhere ──
+const APP_NAME='ComplyHub';
 
 // ── Client helpers ─────────────────────────────────────
 function getClients(){
@@ -1695,9 +1698,9 @@ function switchClient(id){
 
 function updateClientUI(){
   const client=getActiveClient();
-  // Always keep ComplyTrack as the brand name
+  // Always keep APP_NAME as the brand name
   const brand=document.getElementById('nav-client-name');
-  if(brand) brand.textContent='ComplyTrack';
+  if(brand) brand.textContent=APP_NAME;
   // Show client name in the subtitle line
   const sub=document.getElementById('nav-client-sub');
   if(sub) sub.textContent=client.abbr||client.name;
@@ -2318,7 +2321,7 @@ SUMMARY:
 {{device_details}}
 
 ---
-This report was generated by {{tester_company}} using ComplyTrack.
+This report was generated by {{tester_company}} using ${APP_NAME}.
 Please retain this record for compliance purposes.
 
 Note: This is a summary only. The full compliance report has been completed and recorded in BackflowID.
@@ -2802,7 +2805,7 @@ function renderReport(tab){
   }
 }
 
-function ctConfirm(msg, onOk, title='ComplyTrack', okLabel='OK', okDanger=false){
+function ctConfirm(msg, onOk, title=APP_NAME, okLabel='OK', okDanger=false){
   const overlay=document.getElementById('ct-confirm-overlay');
   document.getElementById('ct-confirm-title').textContent=title;
   document.getElementById('ct-confirm-msg').textContent=msg;
@@ -3458,7 +3461,7 @@ function exportCSV(){
   const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\r\n');
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
-  a.download='ComplyTrack_Register.csv';a.click();
+  a.download=APP_NAME+'_Register.csv';a.click();
   showToast('CSV exported.');
 }
 
@@ -3856,7 +3859,7 @@ function openEditClient(id){
           <div class="field"><label>Website</label><input type="text" id="ec-web" value="${esc(ci.web||'')}" placeholder="e.g. shoalhaven.nsw.gov.au"></div>
         </div>
         <div class="field"><label>Email footer note</label>
-          <textarea id="ec-footer" style="height:65px;resize:vertical;font-family:var(--sans);width:100%;padding:8px 11px;font-size:13px;border:1px solid var(--border);border-radius:var(--r);background:var(--surface);color:var(--text)" placeholder="e.g. This report is generated from ComplyTrack.">${esc(ci.footer||'')}</textarea>
+          <textarea id="ec-footer" style="height:65px;resize:vertical;font-family:var(--sans);width:100%;padding:8px 11px;font-size:13px;border:1px solid var(--border);border-radius:var(--r);background:var(--surface);color:var(--text)" placeholder="e.g. This report is generated from ComplyHub.">${esc(ci.footer||'')}</textarea>
         </div>
 
       </div>
@@ -3907,7 +3910,7 @@ function backupData(){
   const backup={
     version:2,
     timestamp:new Date().toISOString(),
-    appName:'ComplyTrack',
+    appName:APP_NAME,
     clients:getClients(),
     activeClientId:getActiveClientId(),
     users:getUsers(),
@@ -3924,7 +3927,7 @@ function backupData(){
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   const date=new Date().toISOString().slice(0,10);
-  a.href=url;a.download=`ComplyTrack_backup_${date}.json`;
+  a.href=url;a.download=`${APP_NAME}_backup_${date}.json`;
   document.body.appendChild(a);a.click();
   document.body.removeChild(a);URL.revokeObjectURL(url);
   showToast('Backup downloaded.');
