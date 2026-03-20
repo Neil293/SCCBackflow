@@ -2150,14 +2150,15 @@ function render(){
     // Month-specific metrics
     const monthDevices=devices.filter(d=>d.scheduledMonth===fsm&&getStatus(d)!=='decommissioned');
     const monthTotal=monthDevices.length;
-    const monthTested=monthDevices.filter(d=>getStatus(d)==='complete').length;
-    const monthRemaining=monthTotal-monthTested;
+    const monthTested=monthDevices.filter(d=>['complete','repaired'].includes(getStatus(d))).length;
+    const monthFailed=monthDevices.filter(d=>getStatus(d)==='failed').length;
+    const monthRemaining=monthTotal-monthTested-monthFailed;
     const monthOverdue=monthDevices.filter(d=>getStatus(d)==='overdue').length;
     document.getElementById('metrics').innerHTML=`
       <div class="metric"><div class="mlabel">${fsm} — Total due</div><div class="mval">${monthTotal}</div><div class="msub">Valves scheduled this month</div></div>
       <div class="metric"><div class="mlabel">${fsm} — Tested</div><div class="mval ok">${monthTested}</div><div class="msub">${monthTotal?Math.round((monthTested/monthTotal)*100):0}% complete</div></div>
       <div class="metric"><div class="mlabel">${fsm} — Remaining</div><div class="mval ${monthRemaining>0?'warn':''}">${monthRemaining}</div><div class="msub">Still to be tested</div></div>
-      <div class="metric"><div class="mlabel">Overdue (all)</div><div class="mval ${overdue>0?'danger':''}">${overdue}</div><div class="msub">${overdue>0?'Past deadline':'None overdue'}</div></div>
+      <div class="metric"><div class="mlabel">${fsm} — Failed</div><div class="mval ${monthFailed>0?'danger':''}">${monthFailed}</div><div class="msub">${monthFailed>0?'Require attention':'None failed'}</div></div>
     `;
   } else {
     document.getElementById('metrics').innerHTML=`
