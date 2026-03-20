@@ -2065,7 +2065,8 @@ function render(){
     filtered.sort((a,b)=>monthOrder(a.scheduledMonth)-monthOrder(b.scheduledMonth));
   }
 
-  const countText=filtered.length!==devices.length?`${filtered.length} of ${devices.length} devices`:`${devices.length} devices`;
+  const activeTotal=devices.filter(d=>getStatus(d)!=='decommissioned').length;
+  const countText=filtered.length!==activeTotal?`${filtered.length} of ${activeTotal} devices`:`${activeTotal} devices`;
   document.getElementById('tcount').textContent=countText;
   // Update mobile count and month pills
   const mobCount=document.getElementById('mob-tcount');
