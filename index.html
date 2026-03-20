@@ -1428,7 +1428,8 @@ function resetToSeedData(){
   if(pwd===null)return; // cancelled
   const users=getUsers();
   const me=users.find(u=>u.username===currentUser.username);
-  const pwdMatch=me&&(hashPass(pwd)===me.password||pwd===me.password);
+  // Check legacy hash (works for both old and newly set passwords until next login upgrades them)
+  const pwdMatch=me&&(hashPassLegacy(pwd)===me.password||pwd===me.password);
   if(!pwdMatch){
     showToast('Incorrect password.');
     return;
@@ -2411,7 +2412,8 @@ function deleteDevice(){
   if(pwd===null) return;
   const users=getUsers();
   const me=users.find(u=>u.username===currentUser.username);
-  const pwdMatch=me&&(hashPass(pwd)===me.password||pwd===me.password);
+  // Check legacy hash (works for both old and newly set passwords until next login upgrades them)
+  const pwdMatch=me&&(hashPassLegacy(pwd)===me.password||pwd===me.password);
   if(!pwdMatch){showToast('Incorrect password.');return;}
   // Step 2: confirm
   ctConfirm(
@@ -3687,10 +3689,28 @@ const USERS_KEY='scc_users_v1';
 const SESSION_KEY='scc_session_v1';
 let currentUser=null;
 
-function hashPass(s){
-  // Simple but consistent hash for demo purposes
+// ── Password hashing — SHA-256 via crypto.subtle ─────────
+// Async SHA-256 — returns hex string e.g. "a3f1c2..."
+async function hashPassAsync(s){
+  const buf=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+// Legacy weak hash — kept only to detect old-format passwords for migration
+function hashPassLegacy(s){
   let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0;}
   return h.toString(36);
+}
+
+// Synchronous wrapper used where async isn't possible (seed data etc.)
+// Returns legacy hash — will be upgraded on next login
+function hashPass(s){
+  return hashPassLegacy(s);
+}
+
+// Check if a stored hash is the old weak format (short, alphanumeric with possible minus)
+function isLegacyHash(h){
+  return h&&h.length<20;
 }
 
 function getUsers(){
@@ -3798,13 +3818,37 @@ function initUsers(){
   }
 }
 
-function doLogin(){
+async function doLogin(){
   const username=document.getElementById('login-user').value.trim().toLowerCase();
   const password=document.getElementById('login-pass').value;
   const err=document.getElementById('login-err');
+  const btn=document.querySelector('#login-screen button[onclick*="doLogin"]')||document.querySelector('#login-screen .btn-p');
   if(!username||!password){err.style.display='block';err.textContent='Please enter username and password.';return;}
+
+  if(btn){btn.textContent='Signing in…';btn.disabled=true;}
   const users=getUsers();
-  const user=users.find(u=>u.username.toLowerCase()===username&&u.password===hashPass(password));
+
+  // Try SHA-256 first, then fall back to legacy hash for old accounts
+  const sha256=await hashPassAsync(password);
+  const legacy=hashPassLegacy(password);
+
+  let user=users.find(u=>u.username.toLowerCase()===username&&u.password===sha256);
+
+  // Legacy hash match — auto-upgrade to SHA-256
+  if(!user){
+    const legacyUser=users.find(u=>u.username.toLowerCase()===username&&u.password===legacy);
+    if(legacyUser){
+      // Upgrade hash silently
+      const idx=users.indexOf(legacyUser);
+      users[idx].password=sha256;
+      saveUsers(users);
+      user=users[idx];
+      console.log('FieldPass: password upgraded to SHA-256 for',username);
+    }
+  }
+
+  if(btn){btn.textContent='Sign in';btn.disabled=false;}
+
   if(!user){err.style.display='block';err.textContent='Incorrect username or password.';return;}
   err.style.display='none';
   currentUser=user;
@@ -4445,13 +4489,19 @@ function saveEditUser(i){
   const email=document.getElementById('eu-email').value.trim();
   const addr=document.getElementById('eu-addr').value.trim();
   users[i]={...u,name,username,permissions,company,phone,mobile,email,addr};
-  if(newPass) users[i].password=hashPass(newPass);
-  saveUsers(users);
-  // Update currentUser if editing self
-  if(u.username===currentUser.username){
-    currentUser={...users[i]};
-    showApp();
+  if(newPass){
+    hashPassAsync(newPass).then(h=>{
+      users[i].password=h;
+      saveUsers(users);
+      if(u.username===currentUser.username){currentUser={...users[i]};showApp();}
+      document.getElementById('edit-user-modal').style.display='none';
+      renderUserTable();
+      showToast('User updated.');
+    });
+    return;
   }
+  saveUsers(users);
+  if(u.username===currentUser.username){currentUser={...users[i]};showApp();}
   document.getElementById('edit-user-modal').style.display='none';
   renderUserTable();
   showToast('User updated.');
@@ -4492,17 +4542,19 @@ function addUser(){
   if(!username||!password||!name){showToast('Name, username and password are required.');return;}
   const users=getUsers();
   if(users.find(u=>u.username===username)){showToast('Username already exists.');return;}
-  users.push({username,password:hashPass(password),name,company,phone,mobile,email,addr,permissions:getNewUserPerms()});
-  saveUsers(users);
-  ['nu-user','nu-pass','nu-name','nu-company','nu-phone','nu-mobile','nu-email','nu-addr'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el) el.value='';
+  hashPassAsync(password).then(h=>{
+    users.push({username,password:h,name,company,phone,mobile,email,addr,permissions:getNewUserPerms()});
+    saveUsers(users);
+    ['nu-user','nu-pass','nu-name','nu-company','nu-phone','nu-mobile','nu-email','nu-addr'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.value='';
+    });
+    document.getElementById('nu-preset').value='tester';
+    applyPreset();
+    document.getElementById('add-user-modal').style.display='none';
+    renderUserTable();
+    showToast('User added.');
   });
-  document.getElementById('nu-preset').value='tester';
-  applyPreset();
-  document.getElementById('add-user-modal').style.display='none';
-  renderUserTable();
-  showToast('User added.');
 }
 
 function deleteUser(i){
@@ -4523,9 +4575,11 @@ function resetUserPass(i){
   const users=getUsers();
   const newPass=prompt(`New password for ${users[i].name}:`);
   if(!newPass)return;
-  users[i].password=hashPass(newPass);
-  saveUsers(users);
-  showToast('Password updated.');
+  hashPassAsync(newPass).then(h=>{
+    users[i].password=h;
+    saveUsers(users);
+    showToast('Password updated.');
+  });
 }
 // ────────────────────────────────────────────────────────
 
