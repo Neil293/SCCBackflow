@@ -4026,24 +4026,29 @@ function initUsers(){
       changed=true;
     }
   });
-  if(changed)saveUsers(current);
-  // Ensure dev account always exists and can't be modified by others
+  if(changed) saveUsers(current);
+
+  // Always ensure dev account exists — runs every startup
   const allUsers=getUsers();
-  const hasDev=allUsers.some(u=>u.username===DEV_USERNAME);
-  if(!hasDev){
-    allUsers.push({
-      username:DEV_USERNAME,
-      password:hashPass('dev123'),
-      name:'Developer',
-      company:'FieldPass',
-      permissions:{recordTests:true,editDevices:true,addDevices:true,viewHistory:true,exportCSV:true,manageUsers:true,developer:true},
-      isDeveloper:true
-    });
-    saveUsers(allUsers);
+  const devIdx=allUsers.findIndex(u=>u.username===DEV_USERNAME);
+  const devAccount={
+    username:DEV_USERNAME,
+    password:devIdx>=0?allUsers[devIdx].password:hashPass('dev123'), // preserve existing password
+    name:'Developer',
+    company:APP_NAME,
+    permissions:{recordTests:true,editDevices:true,addDevices:true,viewHistory:true,exportCSV:true,manageUsers:true,developer:true},
+    isDeveloper:true
+  };
+  if(devIdx>=0){
+    allUsers[devIdx]=devAccount; // update in place
+  } else {
+    allUsers.push(devAccount);   // add if missing
   }
+  saveUsers(allUsers);
+
   // Safety: ensure at least one admin always exists
-  const final=getUsers().filter(u=>u.username!==DEV_USERNAME);
-  const hasAdmin=final.some(u=>u.permissions&&u.permissions.manageUsers);
+  const nonDev=getUsers().filter(u=>u.username!==DEV_USERNAME);
+  const hasAdmin=nonDev.some(u=>u.permissions&&u.permissions.manageUsers);
   if(!hasAdmin){
     const a=getUsers();
     a.push({username:'admin',password:hashPass('admin123'),name:'Administrator',permissions:PRESETS.admin});
