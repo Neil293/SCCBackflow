@@ -1041,8 +1041,8 @@ footer{text-align:center;color:var(--text3);font-size:12px;padding:1.5rem;border
         <label style="display:flex;align-items:center;gap:10px;padding:12px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface2);cursor:pointer">
           <input type="checkbox" id="setting-auto-update-gps" onchange="saveSetting('autoUpdateGps',this.checked)" style="width:18px;height:18px;accent-color:var(--accent);flex-shrink:0">
           <div>
-            <div style="font-size:14px;font-weight:500;color:var(--text)">Update saved location when recording</div>
-            <div style="font-size:12px;color:var(--text3);margin-top:2px">Automatically save your current GPS position each time you record Pass, Fail, Repaired or Decommissioned</div>
+            <div style="font-size:14px;font-weight:500;color:var(--text)">Update saved location after recording asset history</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:2px">Saves your current GPS position each time you record a Pass, Fail, Repaired or Decommissioned result — useful for syncing your phone's location to desktop</div>
           </div>
         </label>
 
@@ -2706,6 +2706,109 @@ function renderDecommissionedReport(){
     }`;
 }
 
+function showSuburbDrilldown(suburb){
+  const el=document.getElementById('reports-content');
+  if(!el) return;
+
+  const subDevices=devices.filter(d=>d.suburb===suburb&&getStatus(d)!=='decommissioned');
+  const decommDevices=devices.filter(d=>d.suburb===suburb&&getStatus(d)==='decommissioned');
+  const total=subDevices.length;
+  const complete=subDevices.filter(d=>['complete','repaired'].includes(getStatus(d))).length;
+  const failed=subDevices.filter(d=>getStatus(d)==='failed').length;
+  const overdue=subDevices.filter(d=>getStatus(d)==='overdue').length;
+  const due=subDevices.filter(d=>getStatus(d)==='due').length;
+  const dueNext=subDevices.filter(d=>getStatus(d)==='due_next').length;
+  const remaining=subDevices.filter(d=>!['complete','repaired','failed'].includes(getStatus(d))).length;
+  const pct=total?Math.round((complete/total)*100):0;
+
+  // Status colour helpers
+  const sBg={complete:'var(--green-bg)',repaired:'#e3f0fc',failed:'var(--red-bg)',overdue:'var(--red-bg)',due:'#fef6e6',due_next:'#e3f0fc',upcoming:'#f0f7ff',pending:'var(--surface2)',decommissioned:'#f0f0f0'};
+  const sCol={complete:'var(--green)',repaired:'#1565c0',failed:'var(--red)',overdue:'var(--red)',due:'#e67e22',due_next:'#1976d2',upcoming:'#64b5f6',pending:'var(--text3)',decommissioned:'#888'};
+
+  const deviceCards=subDevices.map(d=>{
+    const s=getStatus(d);
+    const bfCode=d.backflowId?` · ${extractBfCode(d.backflowId)}`:'';
+    const dateStr=d.testDate?(()=>{const[y,m,day]=d.testDate.split('-');return day+'/'+m+'/'+y;})():'Not tested';
+    return`<div onclick="closeReports();openDevice(${d.id})" style="background:${sBg[s]||'var(--surface)'};border:1px solid rgba(0,0,0,.06);border-radius:10px;padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:10px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">${d.make} ${d.model} <span style="font-weight:400;color:var(--text2)">${d.size}mm</span></div>
+        <div style="font-size:11px;color:var(--text3);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.location}</div>
+        <div style="font-size:11px;color:var(--text3);font-family:var(--mono)">S/N: ${d.serial||'—'}${bfCode}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:11px;font-weight:600;color:${sCol[s]||'var(--text2)'}">
+          ${statusBadge(d).replace(/<[^>]+>/g,'').trim()}
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">${dateStr}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML=`
+    <!-- Back button -->
+    <button onclick="renderReport('suburb')" style="font-family:var(--sans);display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:var(--r);border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;font-size:13px;margin-bottom:1rem">
+      ← Back to all suburbs
+    </button>
+
+    <!-- Suburb header -->
+    <div style="margin-bottom:1rem">
+      <div style="font-size:18px;font-weight:700;color:var(--text)">${suburb}</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:2px">${total} devices</div>
+    </div>
+
+    <!-- Summary tiles -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.25rem">
+      <div style="background:var(--surface);border-radius:12px;padding:12px;text-align:center;border:1px solid var(--border2)">
+        <div style="font-size:22px;font-weight:700;color:var(--accent)">${total}</div>
+        <div style="font-size:11px;color:var(--text3)">Total</div>
+      </div>
+      <div style="background:var(--green-bg);border-radius:12px;padding:12px;text-align:center;border:1px solid rgba(26,102,54,.15)">
+        <div style="font-size:22px;font-weight:700;color:var(--green)">${complete}</div>
+        <div style="font-size:11px;color:var(--green)">Complete</div>
+      </div>
+      <div style="background:var(--accent-light);border-radius:12px;padding:12px;text-align:center;border:1px solid rgba(26,77,110,.15)">
+        <div style="font-size:22px;font-weight:700;color:var(--accent)">${pct}%</div>
+        <div style="font-size:11px;color:var(--accent)">Done</div>
+      </div>
+      ${overdue>0?`<div style="background:var(--red-bg);border-radius:12px;padding:10px;text-align:center;border:1px solid rgba(184,50,50,.15)"><div style="font-size:20px;font-weight:700;color:var(--red)">${overdue}</div><div style="font-size:11px;color:var(--red)">Overdue</div></div>`:''}
+      ${failed>0?`<div style="background:var(--red-bg);border-radius:12px;padding:10px;text-align:center;border:1px solid rgba(184,50,50,.15)"><div style="font-size:20px;font-weight:700;color:var(--red)">${failed}</div><div style="font-size:11px;color:var(--red)">Failed</div></div>`:''}
+      ${remaining>0?`<div style="background:var(--surface2);border-radius:12px;padding:10px;text-align:center;border:1px solid var(--border2)"><div style="font-size:20px;font-weight:700;color:var(--text2)">${remaining}</div><div style="font-size:11px;color:var(--text3)">Remaining</div></div>`:''}
+    </div>
+
+    <!-- Progress bar -->
+    <div style="height:6px;background:var(--border2);border-radius:3px;overflow:hidden;margin-bottom:1.25rem">
+      <div style="height:100%;width:${pct}%;background:${pct===100?'var(--green)':pct>50?'#e67e22':'var(--accent)'};border-radius:3px;transition:width .4s"></div>
+    </div>
+
+    <!-- Device list -->
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:8px">${total} devices — tap to open</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${deviceCards}
+    </div>
+    ${decommDevices.length>0?`
+    <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border2)">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#999;margin-bottom:8px">⊖ Decommissioned (${decommDevices.length})</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${decommDevices.map(d=>{
+          const bfCode=d.backflowId?` · ${extractBfCode(d.backflowId)}`:'';
+          const dateStr=d.testDate?(()=>{const[y,m,day]=d.testDate.split('-');return day+'/'+m+'/'+y;})():'—';
+          return`<div onclick="closeReports();openDevice(${d.id})" style="background:#f5f5f5;border:1px solid #ddd;border-radius:10px;padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:10px;opacity:.75">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:600;color:var(--text2)">${d.make} ${d.model} <span style="font-weight:400">${d.size}mm</span></div>
+              <div style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.location}</div>
+              <div style="font-size:11px;color:var(--text3);font-family:var(--mono)">S/N: ${d.serial||'—'}${bfCode}</div>
+            </div>
+            <div style="text-align:right;flex-shrink:0">
+              <div style="font-size:11px;color:#888;font-weight:500">Decommissioned</div>
+              <div style="font-size:10px;color:var(--text3)">${dateStr}</div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`:''}
+  `;
+}
+
 function renderTemplatesTab(){
   const el=document.getElementById('reports-content');
   const templates=getTemplates();
@@ -2947,7 +3050,7 @@ function renderReport(tab){
         ${sorted.map(([suburb,c])=>{
           const pct=c.total?Math.round(((c.complete+c.repaired)/c.total)*100):0;
           const hasIssue=c.overdue>0||c.failed>0;
-          return`<div style="background:var(--surface);border-radius:12px;border:1px solid ${hasIssue?'rgba(184,50,50,.2)':'var(--border2)'};padding:12px;display:flex;align-items:center;gap:12px">
+          return`<div onclick="showSuburbDrilldown('${suburb.replace(/'/g,"\\'")}')" style="background:var(--surface);border-radius:12px;border:1px solid ${hasIssue?'rgba(184,50,50,.2)':'var(--border2)'};padding:12px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:box-shadow .15s" onmouseenter="this.style.boxShadow='0 2px 12px rgba(0,0,0,.08)'" onmouseleave="this.style.boxShadow='none'">
             <div style="flex:1;min-width:0">
               <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">${suburb}</div>
               <div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -2962,6 +3065,7 @@ function renderReport(tab){
               <div style="font-size:18px;font-weight:700;color:${pct===100?'var(--green)':pct>50?'var(--amber)':'var(--text2)'}">${pct}%</div>
               <div style="font-size:10px;color:var(--text3)">complete</div>
             </div>
+            <div style="color:var(--text3);font-size:16px">›</div>
           </div>`;
         }).join('')}
       </div>`;
