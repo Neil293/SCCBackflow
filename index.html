@@ -2740,6 +2740,7 @@ function showSuburbDrilldown(suburb){
           ${statusBadge(d).replace(/<[^>]+>/g,'').trim()}
         </div>
         <div style="font-size:10px;color:var(--text3);margin-top:2px">${dateStr}</div>
+        ${d.scheduledMonth?`<div style="font-size:10px;color:var(--text3)">${d.scheduledMonth}</div>`:''}
       </div>
     </div>`;
   }).join('');
