@@ -2,7 +2,7 @@
 
 A progressive web app (PWA) for managing and tracking backflow prevention device compliance testing. Built for field staff and administrators to record, track and report on testing across a large device register.
 
-**Live app:** [neil293.github.io/SCCBackflow](https://neil293.github.io/SCCBackflow)
+**Live app:** [neil293.github.io/FieldPass](https://neil293.github.io/FieldPass)
 
 ---
 
